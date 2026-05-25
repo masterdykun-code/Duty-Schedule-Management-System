@@ -10,15 +10,15 @@ const stats = [
 
 const recentSchedules = [
   { id: "LT001", staff: "Trần Thị Mai", shift: "Ca sáng", room: "P.101 - ICU", date: "20/05/2026", status: "assigned" as const },
-  { id: "LT002", staff: "Nguyễn Văn Bình", shift: "Ca tối", room: "P.203 - Nội khoa", date: "20/05/2026", status: "assigned" as const },
+  { id: "LT002", staff: "Nguyễn Văn Bình", shift: "Ca chiều", room: "P.203 - Nội khoa", date: "20/05/2026", status: "assigned" as const },
   { id: "LT003", staff: "Lê Thị Hoa", shift: "Ca cấp cứu", room: "P.001 - Cấp cứu", date: "21/05/2026", status: "assigned" as const },
   { id: "LT004", staff: "Phạm Văn Đức", shift: "Ca sáng", room: "P.305 - Ngoại khoa", date: "21/05/2026", status: "assigned" as const },
-  { id: "LT005", staff: "Hoàng Thị Thu", shift: "Ca tối", room: "P.102 - Sản khoa", date: "22/05/2026", status: "assigned" as const },
+  { id: "LT005", staff: "Hoàng Thị Thu", shift: "Ca chiều", room: "P.102 - Sản khoa", date: "22/05/2026", status: "assigned" as const },
 ];
 
 const exchangeRequests = [
   { id: "YC001", sender: "Trần Thị Mai", receiver: "Lê Văn Nam", shift: "Ca sáng 22/05", status: "waiting_process" as const, date: "19/05/2026" },
-  { id: "YC002", sender: "Nguyễn Văn Bình", receiver: "Phạm Thị Lan", shift: "Ca tối 23/05", status: "waiting_process" as const, date: "19/05/2026" },
+  { id: "YC002", sender: "Nguyễn Văn Bình", receiver: "Phạm Thị Lan", shift: "Ca chiều 23/05", status: "waiting_process" as const, date: "19/05/2026" },
   { id: "YC003", sender: "Lê Thị Hoa", receiver: "Trần Văn Minh", shift: "Ca cấp cứu 24/05", status: "approved" as const, date: "18/05/2026" },
 ];
 

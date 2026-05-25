@@ -134,7 +134,10 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const lockPageScroll = currentPage === "staff_management" || currentPage === "general_schedule";
+  const lockPageScroll =
+    currentPage === "staff_management" ||
+    currentPage === "general_schedule" ||
+    currentPage === "shift_assignment";
 
   function renderContent() {
     if (!user) return null;

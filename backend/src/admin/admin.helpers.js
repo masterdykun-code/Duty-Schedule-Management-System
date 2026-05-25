@@ -28,7 +28,7 @@ export function normalizeGender(value) {
 }
 
 export function normalizeShiftType(value) {
-  if (["SANG", "TOI", "CAP_CUU", "HANH_CHINH"].includes(value)) {
+  if (["SANG", "CHIEU", "CAP_CUU", "HANH_CHINH"].includes(value)) {
     return value;
   }
 

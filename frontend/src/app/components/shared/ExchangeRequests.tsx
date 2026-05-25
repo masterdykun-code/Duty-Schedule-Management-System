@@ -1,179 +1,335 @@
-import { useState } from "react";
-import { X, Check, XCircle } from "lucide-react";
-import { StatusBadge, BadgeStatus } from "../StatusBadge";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeftRight, Check, RefreshCw, X, XCircle } from "lucide-react";
+import {
+  fetchSwapRequests,
+  respondSwapRequestAction,
+  reviewSwapRequestAction,
+} from "../../lib/scheduleApi";
+import type { SwapRequestRecord, SwapRequestSchedule } from "../../lib/scheduleApi";
+import { StatusBadge, type BadgeStatus } from "../StatusBadge";
 
-type RequestStatus = "waiting_response" | "waiting_process" | "approved" | "rejected" | "expired";
-
-interface ExchangeRequest {
-  id: string;
-  date: string;
-  sender: string;
-  receiver: string;
-  shift: string;
-  shiftWanted: string;
-  workDate: string;
-  dept: string;
-  room: string;
-  reason: string;
-  status: RequestStatus;
-}
-
-const mockRequests: ExchangeRequest[] = [
-  { id: "YC001", date: "19/05/2026", sender: "Trần Thị Mai", receiver: "Lê Văn Nam", shift: "Ca sáng 22/05", shiftWanted: "Ca tối 22/05", workDate: "22/05/2026", dept: "Nội khoa", room: "P.203", reason: "Có việc gia đình", status: "waiting_response" },
-  { id: "YC002", date: "19/05/2026", sender: "Nguyễn Văn Bình", receiver: "Phạm Thị Lan", shift: "Ca tối 23/05", shiftWanted: "Ca sáng 23/05", workDate: "23/05/2026", dept: "Ngoại khoa", room: "P.305", reason: "Khám sức khỏe định kỳ", status: "waiting_process" },
-  { id: "YC003", date: "18/05/2026", sender: "Lê Thị Hoa", receiver: "Trần Văn Minh", shift: "Ca cấp cứu 24/05", shiftWanted: "Ca sáng 24/05", workDate: "24/05/2026", dept: "Cấp cứu", room: "P.001", reason: "Cần tham dự đào tạo", status: "approved" },
-  { id: "YC004", date: "17/05/2026", sender: "Hoàng Thị Thu", receiver: "Đặng Thị Lan", shift: "Ca sáng 20/05", shiftWanted: "Ca tối 20/05", workDate: "20/05/2026", dept: "ICU", room: "P.101", reason: "Đưa con đi khám bệnh", status: "rejected" },
-  { id: "YC005", date: "15/05/2026", sender: "Võ Văn Minh", receiver: "Bùi Văn Hải", shift: "Ca tối 18/05", shiftWanted: "Ca sáng 18/05", workDate: "18/05/2026", dept: "Nhi khoa", room: "P.401", reason: "Hết hạn yêu cầu", status: "expired" },
-];
-
-const statusFilters = ["Tất cả", "Chờ phản hồi", "Chờ xử lý", "Đã duyệt", "Bị từ chối", "Hết hạn"];
-const statusMap: Record<string, RequestStatus | undefined> = {
-  "Chờ phản hồi": "waiting_response",
-  "Chờ xử lý": "waiting_process",
-  "Đã duyệt": "approved",
-  "Bị từ chối": "rejected",
-  "Hết hạn": "expired",
-};
+type RequestFilter =
+  | "all"
+  | "PENDING_RESPONSE"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "EXPIRED";
 
 interface ExchangeRequestsProps {
   mode: "staff" | "head";
 }
 
+const filterOptions: { value: RequestFilter; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "PENDING_RESPONSE", label: "Chờ phản hồi" },
+  { value: "PENDING_APPROVAL", label: "Chờ xử lý" },
+  { value: "APPROVED", label: "Đã duyệt" },
+  { value: "REJECTED", label: "Bị từ chối" },
+  { value: "EXPIRED", label: "Hết hạn" },
+];
+
+function toBadgeStatus(status: string): BadgeStatus {
+  if (status === "PENDING_RESPONSE") return "waiting_response";
+  if (status === "PENDING_APPROVAL") return "waiting_process";
+  if (status === "APPROVED") return "approved";
+  if (status === "REJECTED") return "rejected";
+  if (status === "EXPIRED") return "expired";
+  return "empty";
+}
+
+function formatDate(date: string) {
+  if (!date) return "-";
+  const [year, month, day] = date.split("-");
+  return day && month && year ? `${day}/${month}/${year}` : date;
+}
+
+function formatDateTime(value: string) {
+  if (!value) return "-";
+  const [date, time] = value.split(" ");
+  return `${formatDate(date)}${time ? ` ${time}` : ""}`;
+}
+
+function scheduleLine(schedule: SwapRequestSchedule | null) {
+  if (!schedule) return "-";
+  return `${schedule.shiftName} - ${formatDate(schedule.dutyDate)} - ${schedule.roomCode}`;
+}
+
+function scheduleDetail(schedule: SwapRequestSchedule | null) {
+  if (!schedule) return "-";
+  return `${schedule.departmentName}, ${schedule.roomCode}, ${schedule.startTime} - ${schedule.endTime}`;
+}
+
+function canAct(request: SwapRequestRecord) {
+  return request.canRespond || request.canApprove;
+}
+
+function getActionText(request: SwapRequestRecord) {
+  return {
+    positive: request.canApprove ? "Duyệt" : "Đồng ý",
+    note: request.canApprove ? "Ghi chú xử lý" : "Ghi chú phản hồi",
+  };
+}
+
 export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
-  const [requests, setRequests] = useState<ExchangeRequest[]>(mockRequests);
-  const [filterStatus, setFilterStatus] = useState("Tất cả");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const staffFilters = mode === "staff"
-    ? ["Tất cả", "Chờ phản hồi", "Đã duyệt", "Bị từ chối", "Hết hạn"]
-    : ["Tất cả", "Chờ xử lý", "Đã duyệt", "Đã từ chối", "Hết hạn"];
-
-  const filtered = requests.filter((r) => {
-    if (filterStatus === "Tất cả") return true;
-    return r.status === statusMap[filterStatus];
-  });
-
-  const selected = requests.find((r) => r.id === selectedId);
-
-  function handleApprove(id: string) {
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: "approved" } : r));
-  }
-
-  function handleReject(id: string) {
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: "rejected" } : r));
-  }
+  const [requests, setRequests] = useState<SwapRequestRecord[]>([]);
+  const [filterStatus, setFilterStatus] = useState<RequestFilter>("all");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [actionNote, setActionNote] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const title = mode === "head" ? "Xử lý yêu cầu đổi ca" : "Yêu cầu đổi ca";
-  const pendingStatus = mode === "head" ? "waiting_process" : "waiting_response";
-  const filters = mode === "staff" ? statusFilters : staffFilters;
 
-  function canAct(req: ExchangeRequest) {
-    return req.status === pendingStatus;
+  const loadRequests = useCallback(async (silent = false) => {
+    try {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError("");
+      const data = await fetchSwapRequests();
+      setRequests(data);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Không thể tải yêu cầu đổi ca.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRequests();
+    const timer = window.setInterval(() => loadRequests(true), 15000);
+    return () => window.clearInterval(timer);
+  }, [loadRequests]);
+
+  const filteredRequests = useMemo(() => {
+    if (filterStatus === "all") return requests;
+    return requests.filter((request) => request.status === filterStatus);
+  }, [filterStatus, requests]);
+
+  const selected = requests.find((request) => request.requestId === selectedId) || null;
+  const selectedActionText = selected ? getActionText(selected) : null;
+
+  useEffect(() => {
+    setActionNote("");
+  }, [selectedId]);
+
+  async function handleAction(positive: boolean) {
+    if (!selected || !canAct(selected)) return;
+
+    try {
+      setActionLoading(true);
+      setError("");
+      setSuccess("");
+
+      const result = selected.canApprove
+        ? await reviewSwapRequestAction(selected.requestId, positive, actionNote)
+        : await respondSwapRequestAction(selected.requestId, positive, actionNote);
+
+      setSuccess(result.message || "Đã cập nhật yêu cầu đổi ca.");
+      setActionNote("");
+      await loadRequests(true);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Không thể xử lý yêu cầu đổi ca.");
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => loadRequests(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+        >
+          <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+          Tải lại
+        </button>
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-4 flex gap-2 flex-wrap">
-        {filters.map((f) => (
+        {filterOptions.map((option) => (
           <button
-            key={f}
-            onClick={() => setFilterStatus(f)}
+            key={option.value}
+            type="button"
+            onClick={() => setFilterStatus(option.value)}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              filterStatus === f ? "bg-teal-700 text-white" : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+              filterStatus === option.value
+                ? "bg-teal-700 text-white"
+                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
             }`}
           >
-            {f}
+            {option.label}
           </button>
         ))}
       </div>
 
-      <div className="flex gap-4">
-        <div className={`flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden ${selectedId ? "max-w-[calc(100%-320px)]" : ""}`}>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {["Mã YC", "Ngày gửi", "Người gửi", "Người nhận", "Ca trực", "Trạng thái", "Thao tác"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map((r) => (
-                <tr
-                  key={r.id}
-                  className={`hover:bg-gray-50 cursor-pointer ${selectedId === r.id ? "bg-teal-50" : ""}`}
-                  onClick={() => setSelectedId(r.id === selectedId ? null : r.id)}
-                >
-                  <td className="px-4 py-3 font-mono text-gray-500 text-xs">{r.id}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{r.date}</td>
-                  <td className="px-4 py-3 font-medium text-gray-800">{r.sender}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.receiver}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{r.shift}</td>
-                  <td className="px-4 py-3"><StatusBadge status={r.status as BadgeStatus} /></td>
-                  <td className="px-4 py-3">
-                    {canAct(r) && (
-                      <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => handleApprove(r.id)} className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded-md text-xs hover:bg-green-100 transition-colors">
-                          <Check size={12} /> {mode === "head" ? "Duyệt" : "Đồng ý"}
-                        </button>
-                        <button onClick={() => handleReject(r.id)} className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 border border-red-200 rounded-md text-xs hover:bg-red-100 transition-colors">
-                          <XCircle size={12} /> Từ chối
-                        </button>
-                      </div>
-                    )}
-                  </td>
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {success}
+        </div>
+      )}
+
+      <div className="flex gap-4 items-start">
+        <div className={`flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden ${selected ? "min-w-0" : ""}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {["Mã YC", "Ngày gửi", "Người gửi", "Người nhận", "Ca hiện tại", "Ca muốn đổi", "Trạng thái", "Thao tác"].map((header) => (
+                    <th key={header} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      {header}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={7} className="text-center py-10 text-gray-400">Không có yêu cầu nào</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading && (
+                  <tr>
+                    <td colSpan={8} className="text-center py-10 text-gray-400">
+                      Đang tải yêu cầu đổi ca...
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && filteredRequests.map((request) => (
+                  <tr
+                    key={request.requestId}
+                    className={`hover:bg-gray-50 cursor-pointer ${selectedId === request.requestId ? "bg-teal-50" : ""}`}
+                    onClick={() => setSelectedId(request.requestId === selectedId ? null : request.requestId)}
+                  >
+                    <td className="px-4 py-3 font-mono text-gray-500 text-xs">YC{String(request.requestId).padStart(3, "0")}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">{formatDateTime(request.requestedAt)}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{request.requester.fullName}</td>
+                    <td className="px-4 py-3 text-gray-600">{request.targetEmployee.fullName}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">{scheduleLine(request.sourceSchedule)}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">{scheduleLine(request.targetSchedule)}</td>
+                    <td className="px-4 py-3"><StatusBadge status={toBadgeStatus(request.status)} /></td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedId(request.requestId);
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium ${
+                          canAct(request)
+                            ? "bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100"
+                            : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        <ArrowLeftRight size={13} />
+                        {canAct(request) ? "Xử lý" : "Chi tiết"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {!loading && filteredRequests.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="text-center py-10 text-gray-400">
+                      Không có yêu cầu nào
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {selected && (
-          <div className="w-72 bg-white rounded-xl border border-gray-200 flex flex-col flex-shrink-0">
+          <div className="w-[360px] bg-white rounded-xl border border-gray-200 flex flex-col flex-shrink-0">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800 text-sm">Chi tiết yêu cầu</h3>
-              <button onClick={() => setSelectedId(null)}><X size={16} className="text-gray-400" /></button>
+              <button type="button" onClick={() => setSelectedId(null)} className="p-1 rounded-md hover:bg-gray-100">
+                <X size={16} className="text-gray-400" />
+              </button>
             </div>
+
             <div className="p-4 space-y-3 flex-1">
-              {[
-                ["Mã yêu cầu", selected.id],
-                ["Người gửi", selected.sender],
-                ["Người nhận", selected.receiver],
-                ["Ngày trực", selected.workDate],
-                ["Ca trực hiện tại", selected.shift],
-                ["Ca trực muốn đổi", selected.shiftWanted],
-                ["Khoa", selected.dept],
-                ["Phòng", selected.room],
-                ["Lý do", selected.reason],
-              ].map(([label, value]) => (
-                <div key={label} className="flex items-start gap-2">
-                  <span className="text-xs text-gray-500 w-28 flex-shrink-0 mt-0.5">{label}:</span>
-                  <span className="text-xs font-medium text-gray-800">{value}</span>
-                </div>
-              ))}
+              <InfoRow label="Mã yêu cầu" value={`YC${String(selected.requestId).padStart(3, "0")}`} />
+              <InfoRow label="Người gửi" value={`${selected.requester.employeeCode} - ${selected.requester.fullName}`} />
+              <InfoRow label="Người nhận" value={`${selected.targetEmployee.employeeCode} - ${selected.targetEmployee.fullName}`} />
+              <InfoRow label="Ngày gửi" value={formatDateTime(selected.requestedAt)} />
+              <InfoRow label="Ca hiện tại" value={scheduleLine(selected.sourceSchedule)} />
+              <InfoRow label="Chi tiết hiện tại" value={scheduleDetail(selected.sourceSchedule)} />
+              <InfoRow label="Ca muốn đổi" value={scheduleLine(selected.targetSchedule)} />
+              <InfoRow label="Chi tiết muốn đổi" value={scheduleDetail(selected.targetSchedule)} />
+              <InfoRow label="Lý do" value={selected.reason} />
+              {selected.responseNote && <InfoRow label="Phản hồi" value={selected.responseNote} />}
+              {selected.approvalNote && <InfoRow label="Xử lý" value={selected.approvalNote} />}
+              {selected.approvedBy && <InfoRow label="Người xử lý" value={selected.approvedBy.fullName} />}
               <div className="flex items-start gap-2">
                 <span className="text-xs text-gray-500 w-28 flex-shrink-0 mt-0.5">Trạng thái:</span>
-                <StatusBadge status={selected.status as BadgeStatus} />
+                <StatusBadge status={toBadgeStatus(selected.status)} />
               </div>
+
+              {canAct(selected) && selectedActionText && (
+                <label className="block pt-2">
+                  <span className="mb-1.5 block text-xs font-medium text-gray-600">{selectedActionText.note}</span>
+                  <textarea
+                    value={actionNote}
+                    onChange={(event) => setActionNote(event.target.value)}
+                    rows={3}
+                    placeholder="Nhập ghi chú nếu có..."
+                    className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </label>
+              )}
             </div>
-            {canAct(selected) && (
+
+            {canAct(selected) && selectedActionText && (
               <div className="p-4 border-t border-gray-100 flex gap-2">
-                <button onClick={() => handleApprove(selected.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
-                  <Check size={14} /> {mode === "head" ? "Duyệt" : "Đồng ý"}
+                <button
+                  type="button"
+                  onClick={() => handleAction(true)}
+                  disabled={actionLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-60"
+                >
+                  <Check size={14} />
+                  {selectedActionText.positive}
                 </button>
-                <button onClick={() => handleReject(selected.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">
-                  <XCircle size={14} /> Từ chối
+                <button
+                  type="button"
+                  onClick={() => handleAction(false)}
+                  disabled={actionLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-60"
+                >
+                  <XCircle size={14} />
+                  Từ chối
                 </button>
               </div>
             )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-xs text-gray-500 w-28 flex-shrink-0 mt-0.5">{label}:</span>
+      <span className="text-xs font-medium text-gray-800 break-words">{value || "-"}</span>
     </div>
   );
 }
