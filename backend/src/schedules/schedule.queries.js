@@ -87,6 +87,37 @@ export const scheduleShiftsSelect = `
   ORDER BY start_time ASC, shift_id ASC
 `;
 
+export const assignmentEmployeesSelect = `
+  SELECT
+    e.employee_id,
+    e.employee_code,
+    e.full_name,
+    e.position,
+    e.department_id,
+    e.room_id,
+    r.room_code
+  FROM employees e
+  LEFT JOIN rooms r ON r.room_id = e.room_id
+  WHERE e.status = 'ACTIVE'
+  ORDER BY e.department_id ASC, e.position ASC, e.full_name ASC
+`;
+
+export const requiredShiftConfigsSelect = `
+  SELECT
+    drs.department_id,
+    drs.shift_id,
+    drs.is_required,
+    drs.min_staff,
+    drs.max_staff
+  FROM department_required_shifts drs
+  JOIN departments d ON d.department_id = drs.department_id
+  JOIN shifts sh ON sh.shift_id = drs.shift_id
+  WHERE drs.status = 'ACTIVE'
+    AND d.status = 'ACTIVE'
+    AND sh.status = 'ACTIVE'
+  ORDER BY drs.department_id ASC, sh.start_time ASC, sh.shift_id ASC
+`;
+
 export const generalScheduleSelect = `
   SELECT
     s.schedule_id,

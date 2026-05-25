@@ -14,13 +14,13 @@ const stats = [
 
 const upcomingShifts = [
   { day: "Thứ 4, 21/05", shift: "Ca sáng", room: "P.203", time: "06:00 – 14:00", status: "assigned" as const },
-  { day: "Thứ 6, 23/05", shift: "Ca tối", room: "P.203", time: "14:00 – 22:00", status: "assigned" as const },
+  { day: "Thứ 6, 23/05", shift: "Ca chiều", room: "P.203", time: "17:00 - 22:00", status: "assigned" as const },
   { day: "Thứ 7, 24/05", shift: "Ca sáng", room: "P.203", time: "06:00 – 14:00", status: "assigned" as const },
 ];
 
 const exchangeRequests = [
   { id: "YC001", target: "Lê Văn Nam", shift: "Ca sáng 22/05", reason: "Có việc gia đình", status: "waiting_response" as const, date: "19/05" },
-  { id: "YC002", target: "Trần Văn Minh", shift: "Ca tối 18/05", reason: "Mệt mỏi", status: "approved" as const, date: "16/05" },
+  { id: "YC002", target: "Trần Văn Minh", shift: "Ca chiều 18/05", reason: "Mệt mỏi", status: "approved" as const, date: "16/05" },
 ];
 
 export function StaffDashboard({ userName }: StaffDashboardProps) {

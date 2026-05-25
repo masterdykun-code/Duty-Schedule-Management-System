@@ -34,7 +34,7 @@ interface ShiftForm {
 
 const shiftTypes = [
   { value: "SANG", label: "Sáng" },
-  { value: "TOI", label: "Tối" },
+  { value: "CHIEU", label: "Chiều" },
   { value: "CAP_CUU", label: "Cấp cứu" },
   { value: "HANH_CHINH", label: "Hành chính" },
 ];
@@ -238,7 +238,7 @@ export function ShiftManagement() {
 
   function getTypeClass(type: string) {
     if (type === "CAP_CUU") return "bg-red-100 text-red-700";
-    if (type === "TOI") return "bg-blue-100 text-blue-700";
+    if (type === "CHIEU") return "bg-blue-100 text-blue-700";
     if (type === "HANH_CHINH") return "bg-slate-100 text-slate-700";
     return "bg-amber-100 text-amber-700";
   }

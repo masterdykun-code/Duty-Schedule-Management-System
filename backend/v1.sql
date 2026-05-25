@@ -108,7 +108,7 @@ CREATE TABLE shifts (
   updated_at TIMESTAMP,
 
   CONSTRAINT chk_shifts_type
-    CHECK (shift_type IN ('SANG', 'TOI', 'CAP_CUU', 'HANH_CHINH')),
+    CHECK (shift_type IN ('SANG', 'CHIEU', 'CAP_CUU', 'HANH_CHINH')),
   CONSTRAINT chk_shifts_status
     CHECK (status IN ('ACTIVE', 'INACTIVE'))
 );
@@ -370,7 +370,7 @@ JOIN departments d ON d.department_code = v.department_code;
 INSERT INTO shifts (shift_code, shift_name, start_time, end_time, shift_type, note, status, created_at)
 VALUES
   ('SANG', 'Ca sáng', '07:00', '11:30', 'SANG', 'Ca trực buổi sáng', 'ACTIVE', CURRENT_TIMESTAMP),
-  ('TOI', 'Ca tối', '17:00', '22:00', 'TOI', 'Ca trực buổi tối', 'ACTIVE', CURRENT_TIMESTAMP),
+  ('CHIEU', 'Ca chiều', '17:00', '22:00', 'CHIEU', 'Ca trực buổi chiều', 'ACTIVE', CURRENT_TIMESTAMP),
   ('CAP_CUU', 'Ca cấp cứu', '22:00', '07:00', 'CAP_CUU', 'Ca trực cấp cứu', 'ACTIVE', CURRENT_TIMESTAMP),
   ('HANH_CHINH', 'Ca hành chính', '08:00', '17:00', 'HANH_CHINH', 'Ca giờ hành chính', 'ACTIVE', CURRENT_TIMESTAMP);
 
@@ -390,19 +390,19 @@ SELECT
 FROM (
   VALUES
     ('KCC', 'SANG', TRUE, 1, 2),
-    ('KCC', 'TOI', TRUE, 1, 2),
+    ('KCC', 'CHIEU', TRUE, 1, 2),
     ('KCC', 'CAP_CUU', TRUE, 1, 2),
     ('KNO', 'SANG', TRUE, 1, 2),
-    ('KNO', 'TOI', TRUE, 1, 2),
+    ('KNO', 'CHIEU', TRUE, 1, 2),
     ('KNO', 'HANH_CHINH', TRUE, 1, 2),
     ('KNG', 'SANG', TRUE, 1, 2),
-    ('KNG', 'TOI', TRUE, 1, 2),
+    ('KNG', 'CHIEU', TRUE, 1, 2),
     ('KNG', 'CAP_CUU', TRUE, 1, 2),
     ('KSN', 'SANG', TRUE, 1, 2),
-    ('KSN', 'TOI', TRUE, 1, 2),
+    ('KSN', 'CHIEU', TRUE, 1, 2),
     ('KSN', 'HANH_CHINH', TRUE, 1, 2),
     ('KXN', 'SANG', TRUE, 1, 2),
-    ('KXN', 'TOI', TRUE, 1, 2),
+    ('KXN', 'CHIEU', TRUE, 1, 2),
     ('KXN', 'HANH_CHINH', TRUE, 1, 2)
 ) AS v(department_code, shift_code, is_required, min_staff, max_staff)
 JOIN departments d ON d.department_code = v.department_code
@@ -456,18 +456,18 @@ WITH seed AS (
       ('NV002', 'KCC', 'CC02', 'CAP_CUU', 'admin', '2026-05-25', 'ASSIGNED', 'Trực cấp cứu phòng 2'),
       ('NV003', 'KNO', 'NO01', 'SANG', 'admin', '2026-05-25', 'ASSIGNED', 'Trực khoa nội'),
       ('NV004', 'KNO', 'NO02', 'HANH_CHINH', 'admin', '2026-05-25', 'ASSIGNED', 'Trực hành chính khoa nội'),
-      ('NV005', 'KNG', 'NG01', 'TOI', 'admin', '2026-05-25', 'ASSIGNED', 'Trực khoa ngoại'),
+      ('NV005', 'KNG', 'NG01', 'CHIEU', 'admin', '2026-05-25', 'ASSIGNED', 'Trực khoa ngoại'),
       ('NV006', 'KNG', 'NG02', 'CAP_CUU', 'admin', '2026-05-25', 'ASSIGNED', 'Trực cấp cứu khoa ngoại'),
       ('NV007', 'KSN', 'SN01', 'SANG', 'admin', '2026-05-26', 'ASSIGNED', 'Trực phòng sản'),
       ('NV008', 'KSN', 'SN02', 'HANH_CHINH', 'admin', '2026-05-26', 'ASSIGNED', 'Trực hành chính phòng nhi'),
       ('NV009', 'KXN', 'XN01', 'SANG', 'admin', '2026-05-26', 'ASSIGNED', 'Trực xét nghiệm huyết học'),
       ('NV010', 'KXN', 'XN02', 'HANH_CHINH', 'admin', '2026-05-26', 'ASSIGNED', 'Trực hành chính xét nghiệm sinh hóa'),
-      ('NV001', 'KCC', 'CC01', 'TOI', 'admin', '2026-05-27', 'ASSIGNED', 'Trực tối cấp cứu'),
+      ('NV001', 'KCC', 'CC01', 'CHIEU', 'admin', '2026-05-27', 'ASSIGNED', 'Trực chiều cấp cứu'),
       ('NV002', 'KCC', 'CC02', 'CAP_CUU', 'admin', '2026-05-27', 'ASSIGNED', 'Trực cấp cứu'),
-      ('NV003', 'KNO', 'NO01', 'TOI', 'admin', '2026-05-27', 'ASSIGNED', 'Trực tối khoa nội'),
+      ('NV003', 'KNO', 'NO01', 'CHIEU', 'admin', '2026-05-27', 'ASSIGNED', 'Trực chiều khoa nội'),
       ('NV005', 'KNG', 'NG01', 'SANG', 'admin', '2026-05-28', 'ASSIGNED', 'Trực sáng khoa ngoại'),
-      ('NV007', 'KSN', 'SN01', 'TOI', 'admin', '2026-05-28', 'ASSIGNED', 'Trực tối khoa sản'),
-      ('NV009', 'KXN', 'XN01', 'TOI', 'admin', '2026-05-28', 'ASSIGNED', 'Trực tối xét nghiệm'),
+      ('NV007', 'KSN', 'SN01', 'CHIEU', 'admin', '2026-05-28', 'ASSIGNED', 'Trực chiều khoa sản'),
+      ('NV009', 'KXN', 'XN01', 'CHIEU', 'admin', '2026-05-28', 'ASSIGNED', 'Trực chiều xét nghiệm'),
       ('NV004', 'KNO', 'NO02', 'SANG', 'admin', '2026-05-29', 'ASSIGNED', 'Trực sáng khoa nội'),
       ('NV006', 'KNG', 'NG02', 'CAP_CUU', 'admin', '2026-05-29', 'ASSIGNED', 'Trực cấp cứu khoa ngoại')
   ) AS t(employee_code, department_code, room_code, shift_code, assigned_by_username, duty_date, status, note)
@@ -498,10 +498,10 @@ WITH seed AS (
   SELECT * FROM (
     VALUES
       ('NV001', '2026-05-25', 'SANG', 'NV001', 'NV002', '2026-05-25', 'CAP_CUU', 'TKCC001', 'Có việc gia đình nên xin đổi ca.', 'APPROVED', 'Đồng ý đổi ca.', 'Đã duyệt đổi ca.', '2026-05-20 08:10:00', '2026-05-20 09:00:00', '2026-05-20 10:00:00'),
-      ('NV005', '2026-05-25', 'TOI', 'NV005', 'NV006', '2026-05-25', 'CAP_CUU', NULL, 'Cần hỗ trợ đổi sang ca cấp cứu.', 'PENDING_APPROVAL', 'Đồng ý hỗ trợ đổi ca.', NULL, '2026-05-21 14:20:00', '2026-05-21 15:10:00', NULL),
+      ('NV005', '2026-05-25', 'CHIEU', 'NV005', 'NV006', '2026-05-25', 'CAP_CUU', NULL, 'Cần hỗ trợ đổi sang ca cấp cứu.', 'PENDING_APPROVAL', 'Đồng ý hỗ trợ đổi ca.', NULL, '2026-05-21 14:20:00', '2026-05-21 15:10:00', NULL),
       ('NV007', '2026-05-26', 'SANG', 'NV007', 'NV008', '2026-05-26', 'HANH_CHINH', 'TKSN001', 'Bận lịch khám chuyên khoa.', 'REJECTED', 'Không thể đổi do có lịch cá nhân.', 'Từ chối vì chưa có người thay phù hợp.', '2026-05-21 09:30:00', '2026-05-21 11:00:00', '2026-05-21 13:00:00'),
       ('NV009', '2026-05-26', 'SANG', 'NV009', 'NV010', '2026-05-26', 'HANH_CHINH', NULL, 'Xin đổi ca để tham gia đào tạo nội bộ.', 'PENDING_RESPONSE', NULL, NULL, '2026-05-22 07:45:00', NULL, NULL),
-      ('NV003', '2026-05-27', 'TOI', 'NV003', 'NV004', '2026-05-29', 'SANG', 'TKNO001', 'Yêu cầu đổi ca đã quá thời hạn phản hồi.', 'EXPIRED', NULL, 'Yêu cầu hết hạn.', '2026-05-18 16:00:00', NULL, '2026-05-20 16:00:00')
+      ('NV003', '2026-05-27', 'CHIEU', 'NV003', 'NV004', '2026-05-29', 'SANG', 'TKNO001', 'Yêu cầu đổi ca đã quá thời hạn phản hồi.', 'EXPIRED', NULL, 'Yêu cầu hết hạn.', '2026-05-18 16:00:00', NULL, '2026-05-20 16:00:00')
   ) AS t(source_employee_code, source_duty_date, source_shift_code,
          requester_employee_code, target_employee_code, target_duty_date, target_shift_code,
          approved_by_employee_code, reason, status, response_note, approval_note,

@@ -13,7 +13,7 @@ const stats = [
 ];
 
 const pendingRequests = [
-  { id: "YC002", sender: "Nguyễn Văn Bình", receiver: "Phạm Thị Lan", shift: "Ca tối 23/05", dept: "Nội khoa", status: "waiting_process" as const },
+  { id: "YC002", sender: "Nguyễn Văn Bình", receiver: "Phạm Thị Lan", shift: "Ca chiều 23/05", dept: "Nội khoa", status: "waiting_process" as const },
   { id: "YC006", sender: "Hoàng Thị Thu", receiver: "Đặng Thị Lan", shift: "Ca sáng 26/05", dept: "Nội khoa", status: "waiting_process" as const },
   { id: "YC007", sender: "Lê Văn Nam", receiver: "Trần Thị Mai", shift: "Ca cấp cứu 27/05", dept: "Nội khoa", status: "waiting_process" as const },
 ];
