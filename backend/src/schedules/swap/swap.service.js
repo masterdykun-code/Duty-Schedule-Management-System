@@ -366,7 +366,13 @@ export async function createSwapRequest(client, {
     ],
   );
 
-  return { request: result.rows[0] };
+  return {
+    request: result.rows[0],
+    context: {
+      source: validation.source,
+      target: validation.target,
+    },
+  };
 }
 
 export async function listSwapRequests(client, user) {
@@ -509,7 +515,7 @@ export async function respondToSwapRequest(client, {
       [cleanNote, requestId],
     );
 
-    return { request: result.rows[0] };
+    return { request: result.rows[0], context: request };
   }
 
   const validation = await validateSwapPairBySchedules(client, {
@@ -539,7 +545,7 @@ export async function respondToSwapRequest(client, {
       [cleanNote, requestId],
     );
 
-    return { request: result.rows[0] };
+    return { request: result.rows[0], context: request };
   }
 
   const result = await client.query(
@@ -555,7 +561,7 @@ export async function respondToSwapRequest(client, {
     [cleanNote, requestId],
   );
 
-  return { request: result.rows[0] };
+  return { request: result.rows[0], context: request };
 }
 
 export async function reviewSwapRequest(client, {
@@ -605,7 +611,7 @@ export async function reviewSwapRequest(client, {
       [cleanNote, profile.employee_id, requestId],
     );
 
-    return { request: result.rows[0] };
+    return { request: result.rows[0], context: request };
   }
 
   const validation = await validateSwapPairBySchedules(client, {
@@ -633,7 +639,7 @@ export async function reviewSwapRequest(client, {
     [cleanNote, profile.employee_id, requestId],
   );
 
-  return { request: result.rows[0] };
+  return { request: result.rows[0], context: request };
 }
 
 export async function expireOverdueSwapRequests(client) {

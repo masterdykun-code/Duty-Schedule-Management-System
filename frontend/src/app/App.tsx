@@ -6,6 +6,7 @@ import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { StaffManagement } from "./components/admin/StaffManagement";
 import { ShiftManagement } from "./components/admin/ShiftManagement";
 import { ShiftAssignment } from "./components/admin/ShiftAssignment";
+import { ActivityLogs } from "./components/admin/ActivityLogs";
 import { GeneralSchedule } from "./components/shared/GeneralSchedule";
 import { StaffDashboard } from "./components/staff/StaffDashboard";
 import { PersonalSchedule } from "./components/staff/PersonalSchedule";
@@ -28,6 +29,7 @@ const pagesByRole: Record<Role, Page[]> = {
     "shift_management",
     "shift_assignment",
     "general_schedule",
+    "activity_logs",
   ],
   staff: ["dashboard", "personal_schedule", "general_schedule", "exchange_requests"],
   head: ["dashboard", "personal_schedule", "general_schedule", "exchange_requests"],
@@ -116,6 +118,13 @@ export default function App() {
     setCurrentPage("dashboard");
   }
 
+  function handleUserUpdated(updatedUser: AuthUser) {
+    setUser(updatedUser);
+    if (token) {
+      saveSession({ token, user: updatedUser });
+    }
+  }
+
   function handleNavigate(page: Page) {
     if (!user || canOpenPage(user.role, page)) {
       setCurrentPage(page);
@@ -153,7 +162,7 @@ export default function App() {
     }
 
     if (currentPage === "dashboard") {
-      if (role === "admin") return <AdminDashboard />;
+      if (role === "admin") return <AdminDashboard onOpenActivityLogs={() => setCurrentPage("activity_logs")} />;
       if (role === "staff") return <StaffDashboard userName={user.name} />;
       if (role === "head") return <HeadDashboard userName={user.name} />;
       if (role === "office") return <OfficeDashboard />;
@@ -162,6 +171,7 @@ export default function App() {
     if (currentPage === "staff_management" && role === "admin") return <StaffManagement />;
     if (currentPage === "shift_management" && role === "admin") return <ShiftManagement />;
     if (currentPage === "shift_assignment" && role === "admin") return <ShiftAssignment />;
+    if (currentPage === "activity_logs" && role === "admin") return <ActivityLogs />;
     if (currentPage === "general_schedule") return <GeneralSchedule readOnly={role !== "admin"} />;
     if (currentPage === "personal_schedule" && (role === "staff" || role === "head")) {
       return <PersonalSchedule user={user} />;
@@ -186,11 +196,12 @@ export default function App() {
         onLogout={handleLogout}
       />
       <Header
-        userName={user.name}
-        role={user.role}
+        user={user}
+        onUserUpdated={handleUserUpdated}
+        onNavigate={handleNavigate}
         onLogout={handleLogout}
       />
-      <main className={`ml-60 pt-16 ${lockPageScroll ? "h-screen overflow-hidden" : "min-h-screen"}`}>
+      <main className={`ml-64 pt-16 ${lockPageScroll ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`p-6 ${lockPageScroll ? "h-full overflow-hidden" : ""}`}>
           {renderContent()}
         </div>
