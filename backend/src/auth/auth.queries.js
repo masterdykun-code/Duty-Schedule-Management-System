@@ -8,11 +8,17 @@ export const userProfileSelect = `
     u.created_at,
     e.employee_id,
     e.full_name,
+    e.gender,
+    to_char(e.date_of_birth, 'YYYY-MM-DD') AS date_of_birth,
+    e.phone,
+    e.email,
     e.department_id,
     e.room_id,
     e.employee_code,
     e.position,
+    d.department_code,
     d.department_name,
+    r.room_code,
     r.room_name
   FROM users u
   LEFT JOIN employees e ON e.user_id = u.user_id
@@ -30,9 +36,15 @@ export function toPublicUser(row) {
     employee_id: row.employee_id,
     employee_code: row.employee_code,
     full_name: row.full_name || row.username,
+    gender: row.gender,
+    date_of_birth: row.date_of_birth,
+    phone: row.phone,
+    email: row.email,
     department_id: row.department_id,
+    department_code: row.department_code,
     department_name: row.department_name,
     room_id: row.room_id,
+    room_code: row.room_code,
     room_name: row.room_name,
     position: row.position,
   };

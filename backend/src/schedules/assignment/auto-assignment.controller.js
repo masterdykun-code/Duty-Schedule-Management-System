@@ -1,4 +1,6 @@
 import { pool } from "../../db.js";
+import { recordActivityLog } from "../../activity/activity.service.js";
+import { createNotificationsForEmployeeIds } from "../../notifications/notification.service.js";
 import { getRequestedWeekStart } from "../common/schedule-date.js";
 import { findMissingRequiredAssignments, upsertAssignedSchedule } from "./assignment.service.js";
 
@@ -40,6 +42,7 @@ export async function autoAssignSchedule(req, res) {
 
     let createdCount = 0;
     let updatedCount = 0;
+    const assignedEmployeeIds = [];
     const remaining = [];
 
     for (const cell of missingCells) {
@@ -52,6 +55,8 @@ export async function autoAssignSchedule(req, res) {
       });
 
       for (const employee of selected) {
+        assignedEmployeeIds.push(employee.employee_id);
+
         const action = await upsertAssignedSchedule(client, {
           employeeId: employee.employee_id,
           departmentId: cell.department_id,
@@ -76,6 +81,36 @@ export async function autoAssignSchedule(req, res) {
           assigned_count: Number(cell.assigned_count) + selected.length,
         });
       }
+    }
+
+    await recordActivityLog(client, {
+      req,
+      action: "ASSIGN_SCHEDULE_AUTO",
+      entityType: "schedules",
+      description: `Phan cong tu dong tuan bat dau ${weekStart}`,
+      metadata: {
+        week_start: weekStart,
+        created_count: createdCount,
+        updated_count: updatedCount,
+        remaining_missing_count: remaining.length,
+      },
+    });
+
+    if (assignedEmployeeIds.length > 0) {
+      await createNotificationsForEmployeeIds(client, {
+        employeeIds: assignedEmployeeIds,
+        senderUserId: req.user.sub,
+        title: "Lich truc tuan moi",
+        message: `Ban co lich truc moi trong tuan bat dau ${weekStart}.`,
+        notificationType: "SCHEDULE_ASSIGNED",
+        entityType: "schedules",
+        linkTarget: "personal_schedule",
+        metadata: {
+          week_start: weekStart,
+          created_count: createdCount,
+          updated_count: updatedCount,
+        },
+      });
     }
 
     await client.query("COMMIT");

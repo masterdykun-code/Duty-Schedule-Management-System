@@ -86,7 +86,47 @@ export interface ShiftDepartmentPayload {
   max_staff: number;
 }
 
+export interface ActivityLogRecord {
+  id: number;
+  userId: number | null;
+  username: string;
+  role: string;
+  action: string;
+  entityType: string;
+  entityId: number | null;
+  description: string;
+  metadata: Record<string, unknown>;
+  ipAddress: string;
+  createdAt: string;
+}
+
+export interface ActivityLogParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  action?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface ActivityLogResponse {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  data: ActivityLogRecord[];
+}
+
 interface ApiListResponse<T> {
+  data: T[];
+  message?: string;
+}
+
+interface ApiPagedResponse<T> {
+  page: number | string;
+  limit: number | string;
+  total: number | string;
+  total_pages: number | string;
   data: T[];
   message?: string;
 }
@@ -149,6 +189,20 @@ interface ApiShiftDepartment {
   min_staff: number | string;
   max_staff: number | string;
   status: ApiStatus;
+}
+
+interface ApiActivityLog {
+  log_id: number | string;
+  user_id: number | string | null;
+  username: string | null;
+  role: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | string | null;
+  description: string;
+  metadata: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
 }
 
 function getToken() {
@@ -261,6 +315,36 @@ function mapShift(item: ApiShift): ShiftRecord {
   };
 }
 
+function mapActivityLog(item: ApiActivityLog): ActivityLogRecord {
+  return {
+    id: Number(item.log_id),
+    userId: item.user_id ? Number(item.user_id) : null,
+    username: item.username || "",
+    role: item.role || "",
+    action: item.action,
+    entityType: item.entity_type || "",
+    entityId: item.entity_id ? Number(item.entity_id) : null,
+    description: item.description,
+    metadata: item.metadata || {},
+    ipAddress: item.ip_address || "",
+    createdAt: item.created_at,
+  };
+}
+
+function buildActivityQuery(params: ActivityLogParams = {}) {
+  const query = new URLSearchParams();
+
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.search?.trim()) query.set("search", params.search.trim());
+  if (params.action && params.action !== "all") query.set("action", params.action);
+  if (params.dateFrom) query.set("date_from", params.dateFrom);
+  if (params.dateTo) query.set("date_to", params.dateTo);
+
+  const text = query.toString();
+  return text ? `?${text}` : "";
+}
+
 export async function fetchDepartments() {
   const body = await adminRequest<ApiListResponse<ApiDepartment>>("/api/admin/departments");
   return body.data.map(mapDepartment);
@@ -314,6 +398,20 @@ export async function createShift(payload: ShiftPayload) {
   });
 
   return mapShift(body.data);
+}
+
+export async function fetchActivityLogs(params: ActivityLogParams = {}): Promise<ActivityLogResponse> {
+  const body = await adminRequest<ApiPagedResponse<ApiActivityLog>>(
+    `/api/admin/activity-logs${buildActivityQuery(params)}`,
+  );
+
+  return {
+    page: Number(body.page),
+    limit: Number(body.limit),
+    total: Number(body.total),
+    totalPages: Number(body.total_pages),
+    data: body.data.map(mapActivityLog),
+  };
 }
 
 export async function updateShift(id: number, payload: ShiftPayload) {

@@ -1,4 +1,5 @@
 import { pool } from "../db.js";
+import { recordActivityLog } from "../activity/activity.service.js";
 import { hashPassword } from "../auth/password.service.js";
 import { roles } from "../auth/roles.js";
 import {
@@ -224,6 +225,21 @@ export async function createEmployee(req, res) {
 
     const employee = await getEmployeeForAdmin(insertResult.rows[0].employee_id, client);
 
+    await recordActivityLog(client, {
+      req,
+      action: "CREATE_EMPLOYEE",
+      entityType: "employees",
+      entityId: employee.employee_id,
+      description: `Them nhan vien ${employee.employee_code} - ${employee.full_name}`,
+      metadata: {
+        employee_code: employee.employee_code,
+        department_id: employee.department_id,
+        room_id: employee.room_id,
+        position: employee.position,
+        status: employee.status,
+      },
+    });
+
     await client.query("COMMIT");
 
     res.status(201).json({
@@ -352,6 +368,21 @@ export async function updateEmployee(req, res) {
 
     const employee = await getEmployeeForAdmin(employeeId, client);
 
+    await recordActivityLog(client, {
+      req,
+      action: "UPDATE_EMPLOYEE",
+      entityType: "employees",
+      entityId: employee.employee_id,
+      description: `Cap nhat nhan vien ${employee.employee_code} - ${employee.full_name}`,
+      metadata: {
+        employee_code: employee.employee_code,
+        department_id: employee.department_id,
+        room_id: employee.room_id,
+        position: employee.position,
+        status: employee.status,
+      },
+    });
+
     await client.query("COMMIT");
 
     res.json({
@@ -405,6 +436,21 @@ export async function deactivateEmployee(req, res) {
     }
 
     const employee = await getEmployeeForAdmin(employeeId, client);
+
+    await recordActivityLog(client, {
+      req,
+      action: "DEACTIVATE_EMPLOYEE",
+      entityType: "employees",
+      entityId: employee.employee_id,
+      description: `Ngung hoat dong nhan vien ${employee.employee_code} - ${employee.full_name}`,
+      metadata: {
+        employee_code: employee.employee_code,
+        department_id: employee.department_id,
+        room_id: employee.room_id,
+        position: employee.position,
+        status: employee.status,
+      },
+    });
 
     await client.query("COMMIT");
 
@@ -489,6 +535,22 @@ export async function createShift(req, res) {
 
     const shift = await getShiftForAdmin(insertResult.rows[0].shift_id, client);
 
+    await recordActivityLog(client, {
+      req,
+      action: "CREATE_SHIFT",
+      entityType: "shifts",
+      entityId: shift.shift_id,
+      description: `Them ca truc ${shift.shift_code} - ${shift.shift_name}`,
+      metadata: {
+        shift_code: shift.shift_code,
+        shift_type: shift.shift_type,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        status: shift.status,
+        department_count: departmentConfigs.length,
+      },
+    });
+
     await client.query("COMMIT");
 
     res.status(201).json({
@@ -569,6 +631,22 @@ export async function updateShift(req, res) {
 
     const shift = await getShiftForAdmin(shiftId, client);
 
+    await recordActivityLog(client, {
+      req,
+      action: "UPDATE_SHIFT",
+      entityType: "shifts",
+      entityId: shift.shift_id,
+      description: `Cap nhat ca truc ${shift.shift_code} - ${shift.shift_name}`,
+      metadata: {
+        shift_code: shift.shift_code,
+        shift_type: shift.shift_type,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        status: shift.status,
+        department_count: departmentConfigs.length,
+      },
+    });
+
     await client.query("COMMIT");
 
     res.json({
@@ -624,6 +702,21 @@ export async function deactivateShift(req, res) {
     );
 
     const shift = await getShiftForAdmin(shiftId, client);
+
+    await recordActivityLog(client, {
+      req,
+      action: "DEACTIVATE_SHIFT",
+      entityType: "shifts",
+      entityId: shift.shift_id,
+      description: `Ngung ap dung ca truc ${shift.shift_code} - ${shift.shift_name}`,
+      metadata: {
+        shift_code: shift.shift_code,
+        shift_type: shift.shift_type,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        status: shift.status,
+      },
+    });
 
     await client.query("COMMIT");
 

@@ -1,4 +1,6 @@
 import { pool } from "../../db.js";
+import { recordActivityLog } from "../../activity/activity.service.js";
+import { createNotificationsForEmployeeIds } from "../../notifications/notification.service.js";
 import { parsePositiveId } from "../common/schedule-ids.js";
 import { createSwapRequest } from "./swap.service.js";
 
@@ -28,6 +30,37 @@ export async function sendSwapRequest(req, res) {
       await client.query("ROLLBACK");
       return res.status(400).json({ message: result.error });
     }
+
+    await recordActivityLog(client, {
+      req,
+      action: "CREATE_SWAP_REQUEST",
+      entityType: "swap_requests",
+      entityId: result.request.request_id,
+      description: `Gui yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")}`,
+      metadata: {
+        request_id: result.request.request_id,
+        source_schedule_id: sourceScheduleId,
+        target_schedule_id: targetScheduleId,
+        status: result.request.status,
+      },
+    });
+
+    await createNotificationsForEmployeeIds(client, {
+      employeeIds: [result.context.target.employee_id],
+      senderUserId: req.user.sub,
+      title: "Yeu cau doi ca moi",
+      message: `${result.context.source.full_name} gui yeu cau doi ca voi ban.`,
+      notificationType: "SWAP_REQUEST_CREATED",
+      entityType: "swap_requests",
+      entityId: result.request.request_id,
+      linkTarget: "exchange_requests",
+      metadata: {
+        request_id: result.request.request_id,
+        source_schedule_id: sourceScheduleId,
+        target_schedule_id: targetScheduleId,
+        status: result.request.status,
+      },
+    });
 
     await client.query("COMMIT");
 

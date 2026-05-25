@@ -3,6 +3,7 @@ import cors from "cors";
 import { pool } from "./db.js";
 import adminRoutes from "./admin/admin.routes.js";
 import authRoutes from "./auth/auth.routes.js";
+import notificationRoutes from "./notifications/notification.routes.js";
 import scheduleRoutes from "./schedules/schedule.routes.js";
 import tableRoutes from "./routes/table.routes.js";
 import userRoutes from "./users/user.routes.js";
@@ -36,6 +37,7 @@ export function createApp() {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/api/notifications", notificationRoutes);
   app.use("/api/schedules", scheduleRoutes);
   app.use("/api", userRoutes);
   app.use("/api", tableRoutes);

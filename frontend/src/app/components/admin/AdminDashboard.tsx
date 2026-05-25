@@ -1,94 +1,286 @@
-import { Users, Clock, ArrowLeftRight, Calendar, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  Activity,
+  Calendar,
+  ChevronRight,
+  Clock,
+  History,
+  RefreshCw,
+  Users,
+} from "lucide-react";
+import {
+  fetchActivityLogs,
+  fetchShifts,
+  fetchStaff,
+  type ActivityLogRecord,
+} from "../../lib/adminApi";
+import {
+  fetchGeneralSchedule,
+  type GeneralScheduleItem,
+} from "../../lib/scheduleApi";
 import { StatusBadge } from "../StatusBadge";
+import {
+  compareDutyTime,
+  formatDate,
+  formatTimeRange,
+  formatTodayLong,
+  formatWeekRange,
+  getCurrentWeekStart,
+  getScheduleBadgeStatus,
+  isToday,
+  isUpcomingOrToday,
+} from "../shared/dashboardUtils";
+import {
+  formatActivityTime,
+  getActivityActionLabel,
+  getActivityActor,
+  getActivityRoleLabel,
+} from "./activityLogUtils";
 
-const stats = [
-  { label: "Tổng số nhân viên", value: "124", icon: <Users size={22} className="text-teal-600" />, bg: "bg-teal-50" },
-  { label: "Ca trực hôm nay", value: "18", icon: <Clock size={22} className="text-blue-600" />, bg: "bg-blue-50" },
-  { label: "Yêu cầu đổi ca chờ duyệt", value: "7", icon: <ArrowLeftRight size={22} className="text-orange-500" />, bg: "bg-orange-50" },
-  { label: "Lịch trực trong tuần", value: "96", icon: <Calendar size={22} className="text-purple-600" />, bg: "bg-purple-50" },
-];
+interface AdminDashboardProps {
+  onOpenActivityLogs: () => void;
+}
 
-const recentSchedules = [
-  { id: "LT001", staff: "Trần Thị Mai", shift: "Ca sáng", room: "P.101 - ICU", date: "20/05/2026", status: "assigned" as const },
-  { id: "LT002", staff: "Nguyễn Văn Bình", shift: "Ca chiều", room: "P.203 - Nội khoa", date: "20/05/2026", status: "assigned" as const },
-  { id: "LT003", staff: "Lê Thị Hoa", shift: "Ca cấp cứu", room: "P.001 - Cấp cứu", date: "21/05/2026", status: "assigned" as const },
-  { id: "LT004", staff: "Phạm Văn Đức", shift: "Ca sáng", room: "P.305 - Ngoại khoa", date: "21/05/2026", status: "assigned" as const },
-  { id: "LT005", staff: "Hoàng Thị Thu", shift: "Ca chiều", room: "P.102 - Sản khoa", date: "22/05/2026", status: "assigned" as const },
-];
+interface StatCardProps {
+  label: string;
+  value: string;
+  sub: string;
+  icon: ReactNode;
+  bg: string;
+}
 
-const exchangeRequests = [
-  { id: "YC001", sender: "Trần Thị Mai", receiver: "Lê Văn Nam", shift: "Ca sáng 22/05", status: "waiting_process" as const, date: "19/05/2026" },
-  { id: "YC002", sender: "Nguyễn Văn Bình", receiver: "Phạm Thị Lan", shift: "Ca chiều 23/05", status: "waiting_process" as const, date: "19/05/2026" },
-  { id: "YC003", sender: "Lê Thị Hoa", receiver: "Trần Văn Minh", shift: "Ca cấp cứu 24/05", status: "approved" as const, date: "18/05/2026" },
-];
+function getPromiseError(result: PromiseSettledResult<unknown>) {
+  if (result.status !== "rejected") return "";
+  return result.reason instanceof Error ? result.reason.message : "Không thể tải dữ liệu.";
+}
 
-export function AdminDashboard() {
+export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
+  const weekStart = useMemo(() => getCurrentWeekStart(), []);
+  const [staffCount, setStaffCount] = useState(0);
+  const [activeShiftCount, setActiveShiftCount] = useState(0);
+  const [scheduleItems, setScheduleItems] = useState<GeneralScheduleItem[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogRecord[]>([]);
+  const [activityTotal, setActivityTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadDashboard();
+  }, [weekStart]);
+
+  async function loadDashboard(silent = false) {
+    try {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError("");
+
+      const [staffResult, shiftsResult, scheduleResult, activityResult] = await Promise.allSettled([
+        fetchStaff(),
+        fetchShifts(),
+        fetchGeneralSchedule(weekStart),
+        fetchActivityLogs({ limit: 5 }),
+      ]);
+
+      const errors = [staffResult, shiftsResult, scheduleResult, activityResult]
+        .map(getPromiseError)
+        .filter(Boolean);
+
+      if (staffResult.status === "fulfilled") {
+        setStaffCount(staffResult.value.length);
+      }
+
+      if (shiftsResult.status === "fulfilled") {
+        setActiveShiftCount(shiftsResult.value.filter((shift) => shift.status === "active").length);
+      }
+
+      if (scheduleResult.status === "fulfilled") {
+        setScheduleItems(scheduleResult.value.data);
+      }
+
+      if (activityResult.status === "fulfilled") {
+        setActivityLogs(activityResult.value.data);
+        setActivityTotal(activityResult.value.total);
+      }
+
+      if (errors.length) {
+        setError(errors[0]);
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  const todaySchedules = scheduleItems.filter((schedule) => isToday(schedule.dutyDate));
+  const recentSchedules = scheduleItems
+    .filter((schedule) => isUpcomingOrToday(schedule.dutyDate))
+    .sort(compareDutyTime)
+    .slice(0, 5);
+
+  const stats: StatCardProps[] = [
+    {
+      label: "Tổng số nhân viên",
+      value: String(staffCount),
+      sub: "Đang quản lý",
+      icon: <Users size={22} className="text-teal-600" />,
+      bg: "bg-teal-50",
+    },
+    {
+      label: "Ca trực hôm nay",
+      value: String(todaySchedules.length),
+      sub: formatTodayLong(),
+      icon: <Clock size={22} className="text-blue-600" />,
+      bg: "bg-blue-50",
+    },
+    {
+      label: "Hoạt động hệ thống",
+      value: String(activityTotal),
+      sub: "Tổng nhật ký đã ghi",
+      icon: <Activity size={22} className="text-orange-500" />,
+      bg: "bg-orange-50",
+    },
+    {
+      label: "Lịch trực trong tuần",
+      value: String(scheduleItems.length),
+      sub: `${activeShiftCount} ca trực đang dùng`,
+      icon: <Calendar size={22} className="text-violet-600" />,
+      bg: "bg-violet-50",
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">Trang tổng quan</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Thứ Tư, ngày 20 tháng 05 năm 2026</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Trang tổng quan</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Tổng quan vận hành hệ thống quản lý lịch trực - Tuần {formatWeekRange(weekStart)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => loadDashboard(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+        >
+          <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+          Tải lại
+        </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
-              {s.icon}
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-            <div className="text-sm text-gray-500 mt-0.5">{s.label}</div>
-          </div>
+      {error && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Một phần dữ liệu chưa tải được: {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {stats.map((item) => (
+          <StatCard key={item.label} {...item} />
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <section className="bg-white rounded-xl border border-gray-200">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h3 className="font-medium text-gray-800">Lịch trực gần nhất</h3>
-            <button className="text-xs text-teal-600 hover:text-teal-800 flex items-center gap-0.5">
-              Xem tất cả <ChevronRight size={14} />
-            </button>
+            <span className="text-xs text-gray-400">Tuần hiện tại</span>
           </div>
           <div className="divide-y divide-gray-50">
-            {recentSchedules.map((s) => (
-              <div key={s.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-800">{s.staff}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{s.shift} · {s.room}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">{s.date}</div>
-                  <div className="mt-1"><StatusBadge status={s.status} /></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+            {loading && <PanelMessage text="Đang tải lịch trực..." />}
 
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="font-medium text-gray-800">Yêu cầu đổi ca mới nhất</h3>
-            <button className="text-xs text-teal-600 hover:text-teal-800 flex items-center gap-0.5">
-              Xem tất cả <ChevronRight size={14} />
-            </button>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {exchangeRequests.map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-800">{r.sender} → {r.receiver}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{r.shift}</div>
+            {!loading && recentSchedules.map((schedule) => (
+              <div key={schedule.scheduleId} className="flex items-center justify-between gap-4 px-5 py-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {schedule.position} {schedule.fullName}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5 truncate">
+                    {schedule.departmentName} - {schedule.roomCode} - {schedule.shiftName}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">{r.date}</div>
-                  <div className="mt-1"><StatusBadge status={r.status} /></div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-xs text-gray-400">
+                    {formatDate(schedule.dutyDate)} - {formatTimeRange(schedule.startTime, schedule.endTime)}
+                  </div>
+                  <div className="mt-1">
+                    <StatusBadge status={getScheduleBadgeStatus(schedule.status)} />
+                  </div>
                 </div>
               </div>
             ))}
+
+            {!loading && recentSchedules.length === 0 && (
+              <PanelMessage text="Tuần này chưa có lịch trực sắp tới." />
+            )}
           </div>
-        </div>
+        </section>
+
+        <section className="bg-white rounded-xl border border-gray-200">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <History size={17} className="text-teal-700" />
+              <h3 className="font-medium text-gray-800">Danh sách hoạt động gần đây</h3>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenActivityLogs}
+              className="text-xs text-teal-600 hover:text-teal-800 flex items-center gap-0.5"
+            >
+              Xem thêm <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="divide-y divide-gray-50">
+            {loading && <PanelMessage text="Đang tải hoạt động..." />}
+
+            {!loading && activityLogs.map((log) => (
+              <button
+                key={log.id}
+                type="button"
+                onClick={onOpenActivityLogs}
+                className="w-full flex items-start justify-between gap-4 px-5 py-3 text-left hover:bg-gray-50"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-800 truncate">{log.description}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 truncate">
+                    {getActivityActor(log)} - {getActivityRoleLabel(log.role)} - {getActivityActionLabel(log.action)}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 whitespace-nowrap">
+                  {formatActivityTime(log.createdAt)}
+                </span>
+              </button>
+            ))}
+
+            {!loading && activityLogs.length === 0 && (
+              <PanelMessage text="Chưa có hoạt động nào." />
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
+}
+
+function StatCard({ label, value, sub, icon, bg }: StatCardProps) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3`}>
+        {icon}
+      </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-sm text-gray-500 mt-1">{label}</div>
+      <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
+    </div>
+  );
+}
+
+function PanelMessage({ text }: { text: string }) {
+  return <div className="px-5 py-8 text-center text-sm text-gray-400">{text}</div>;
 }

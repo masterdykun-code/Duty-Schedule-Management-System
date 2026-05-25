@@ -16,6 +16,8 @@ DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS rooms CASCADE;
 DROP TABLE IF EXISTS shifts CASCADE;
 DROP TABLE IF EXISTS departments CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS activity_logs CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 -- =========================================================
@@ -203,6 +205,67 @@ CREATE TABLE swap_requests (
     CHECK (requester_employee_id <> target_employee_id)
 );
 
+CREATE TABLE activity_logs (
+  log_id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT,
+  username VARCHAR(50),
+  role VARCHAR(30),
+  action VARCHAR(80) NOT NULL,
+  entity_type VARCHAR(80),
+  entity_id BIGINT,
+  description TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ip_address VARCHAR(45),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_activity_logs_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+  CONSTRAINT chk_activity_logs_role
+    CHECK (role IS NULL OR role IN ('ADMIN', 'MEDICAL_STAFF', 'DEPARTMENT_HEAD', 'OFFICE'))
+);
+
+CREATE TABLE notifications (
+  notification_id BIGSERIAL PRIMARY KEY,
+  recipient_user_id BIGINT,
+  recipient_role VARCHAR(30),
+  sender_user_id BIGINT,
+  title VARCHAR(150) NOT NULL,
+  message TEXT NOT NULL,
+  notification_type VARCHAR(50) NOT NULL,
+  entity_type VARCHAR(80),
+  entity_id BIGINT,
+  link_target VARCHAR(120),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  read_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_notifications_recipient_user
+    FOREIGN KEY (recipient_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_sender_user
+    FOREIGN KEY (sender_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+  CONSTRAINT chk_notifications_recipient
+    CHECK (recipient_user_id IS NOT NULL OR recipient_role IS NOT NULL),
+  CONSTRAINT chk_notifications_recipient_role
+    CHECK (recipient_role IS NULL OR recipient_role IN ('ADMIN', 'MEDICAL_STAFF', 'DEPARTMENT_HEAD', 'OFFICE')),
+  CONSTRAINT chk_notifications_type
+    CHECK (
+      notification_type IN (
+        'SCHEDULE_ASSIGNED',
+        'SCHEDULE_UPDATED',
+        'SCHEDULE_RESET',
+        'SWAP_REQUEST_CREATED',
+        'SWAP_REQUEST_RESPONDED',
+        'SWAP_REQUEST_APPROVED',
+        'SWAP_REQUEST_REJECTED',
+        'SWAP_REQUEST_EXPIRED',
+        'SYSTEM'
+      )
+    ),
+  CONSTRAINT chk_notifications_read_at
+    CHECK ((is_read = FALSE AND read_at IS NULL) OR (is_read = TRUE))
+);
+
 -- =========================================================
 -- 2) INDEXES
 -- =========================================================
@@ -246,6 +309,21 @@ CREATE INDEX idx_swap_requests_requester_employee_id ON swap_requests(requester_
 CREATE INDEX idx_swap_requests_target_employee_id ON swap_requests(target_employee_id);
 CREATE INDEX idx_swap_requests_status ON swap_requests(status);
 CREATE INDEX idx_swap_requests_requested_at ON swap_requests(requested_at);
+
+CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
+CREATE INDEX idx_activity_logs_action ON activity_logs(action);
+CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
+CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
+
+CREATE INDEX idx_notifications_recipient_user_id ON notifications(recipient_user_id);
+CREATE INDEX idx_notifications_recipient_role ON notifications(recipient_role);
+CREATE INDEX idx_notifications_sender_user_id ON notifications(sender_user_id);
+CREATE INDEX idx_notifications_unread_user
+ON notifications(recipient_user_id, is_read, created_at DESC);
+CREATE INDEX idx_notifications_unread_role
+ON notifications(recipient_role, is_read, created_at DESC);
+CREATE INDEX idx_notifications_entity ON notifications(entity_type, entity_id);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
 
 -- Chỉ cho phép 1 yêu cầu đổi ca đang chờ trên cùng 1 lịch trực.
 CREATE UNIQUE INDEX uq_active_swap_request
@@ -370,8 +448,8 @@ JOIN departments d ON d.department_code = v.department_code;
 INSERT INTO shifts (shift_code, shift_name, start_time, end_time, shift_type, note, status, created_at)
 VALUES
   ('SANG', 'Ca sáng', '07:00', '11:30', 'SANG', 'Ca trực buổi sáng', 'ACTIVE', CURRENT_TIMESTAMP),
-  ('CHIEU', 'Ca chiều', '17:00', '22:00', 'CHIEU', 'Ca trực buổi chiều', 'ACTIVE', CURRENT_TIMESTAMP),
-  ('CAP_CUU', 'Ca cấp cứu', '22:00', '07:00', 'CAP_CUU', 'Ca trực cấp cứu', 'ACTIVE', CURRENT_TIMESTAMP),
+  ('CHIEU', 'Ca chiều', '12:00', '19:00', 'CHIEU', 'Ca trực buổi chiều', 'ACTIVE', CURRENT_TIMESTAMP),
+  ('CAP_CUU', 'Ca cấp cứu', '19:00', '07:00', 'CAP_CUU', 'Ca trực cấp cứu', 'ACTIVE', CURRENT_TIMESTAMP),
   ('HANH_CHINH', 'Ca hành chính', '08:00', '17:00', 'HANH_CHINH', 'Ca giờ hành chính', 'ACTIVE', CURRENT_TIMESTAMP);
 
 -- 3.5) DEPARTMENT REQUIRED SHIFTS
@@ -542,6 +620,59 @@ LEFT JOIN schedules ts
  AND ts.shift_id = tgt_shift.shift_id
 LEFT JOIN employees appr ON appr.employee_code = seed.approved_by_employee_code;
 
+-- 3.9) ACTIVITY_LOGS
+INSERT INTO activity_logs (
+  user_id, username, role, action, entity_type, entity_id, description, metadata, ip_address, created_at
+)
+SELECT
+  u.user_id,
+  u.username,
+  u.role,
+  v.action,
+  v.entity_type,
+  v.entity_id::bigint,
+  v.description,
+  v.metadata::jsonb,
+  v.ip_address,
+  v.created_at::timestamp
+FROM (
+  VALUES
+    ('admin', 'ASSIGN_SCHEDULE_AUTO', 'schedules', NULL, 'Phan cong lich truc tu dong tuan 25/05 - 31/05/2026', '{"week_start":"2026-05-25","week_end":"2026-05-31"}', '127.0.0.1', '2026-05-20 08:00:00'),
+    ('admin', 'CREATE_EMPLOYEE', 'employees', NULL, 'Them nhan vien mau trong he thong', '{"employee_code":"NV001"}', '127.0.0.1', '2026-05-20 08:05:00'),
+    ('bs_an', 'CREATE_SWAP_REQUEST', 'swap_requests', NULL, 'Gui yeu cau doi ca', '{"source_date":"2026-05-25","target_employee_code":"NV002"}', '127.0.0.1', '2026-05-20 08:10:00'),
+    ('truong_kcc', 'APPROVE_SWAP_REQUEST', 'swap_requests', NULL, 'Duyet yeu cau doi ca cua nhan vien', '{"request_status":"APPROVED"}', '127.0.0.1', '2026-05-20 10:00:00')
+) AS v(username, action, entity_type, entity_id, description, metadata, ip_address, created_at)
+JOIN users u ON u.username = v.username;
+
+-- 3.10) NOTIFICATIONS
+INSERT INTO notifications (
+  recipient_user_id, recipient_role, sender_user_id, title, message,
+  notification_type, entity_type, entity_id, link_target, metadata, is_read, created_at
+)
+SELECT
+  recipient.user_id,
+  v.recipient_role,
+  sender.user_id,
+  v.title,
+  v.message,
+  v.notification_type,
+  v.entity_type,
+  v.entity_id::bigint,
+  v.link_target,
+  v.metadata::jsonb,
+  v.is_read,
+  v.created_at::timestamp
+FROM (
+  VALUES
+    ('bs_an', NULL, 'admin', 'Lich truc moi', 'Ban co lich truc moi trong tuan 25/05 - 31/05/2026.', 'SCHEDULE_ASSIGNED', 'schedules', NULL, 'personal_schedule', '{"week_start":"2026-05-25"}', FALSE, '2026-05-20 08:02:00'),
+    ('yt_binh', NULL, 'bs_an', 'Yeu cau doi ca moi', 'Nguyen Van An gui yeu cau doi ca voi ban.', 'SWAP_REQUEST_CREATED', 'swap_requests', NULL, 'exchange_requests', '{"source_date":"2026-05-25"}', FALSE, '2026-05-20 08:10:00'),
+    ('truong_kcc', NULL, 'yt_binh', 'Yeu cau doi ca cho duyet', 'Co yeu cau doi ca trong khoa can truong khoa xu ly.', 'SWAP_REQUEST_RESPONDED', 'swap_requests', NULL, 'exchange_requests', '{"request_status":"PENDING_APPROVAL"}', FALSE, '2026-05-20 09:00:00'),
+    (NULL, 'ADMIN', NULL, 'He thong da san sang', 'Bang thong bao da duoc khoi tao cho quan tri vien.', 'SYSTEM', 'notifications', NULL, 'activity_logs', '{}', TRUE, '2026-05-20 07:50:00')
+) AS v(recipient_username, recipient_role, sender_username, title, message,
+       notification_type, entity_type, entity_id, link_target, metadata, is_read, created_at)
+LEFT JOIN users recipient ON recipient.username = v.recipient_username
+LEFT JOIN users sender ON sender.username = v.sender_username;
+
 COMMIT;
 
 -- =========================================================
@@ -553,4 +684,6 @@ UNION ALL SELECT 'rooms', COUNT(*) FROM rooms
 UNION ALL SELECT 'employees', COUNT(*) FROM employees
 UNION ALL SELECT 'shifts', COUNT(*) FROM shifts
 UNION ALL SELECT 'schedules', COUNT(*) FROM schedules
-UNION ALL SELECT 'swap_requests', COUNT(*) FROM swap_requests;
+UNION ALL SELECT 'swap_requests', COUNT(*) FROM swap_requests
+UNION ALL SELECT 'activity_logs', COUNT(*) FROM activity_logs
+UNION ALL SELECT 'notifications', COUNT(*) FROM notifications;

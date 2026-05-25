@@ -10,9 +10,15 @@ interface ApiUser {
   employee_id?: number | null;
   employee_code?: string | null;
   full_name?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  phone?: string | null;
+  email?: string | null;
   department_id?: number | null;
+  department_code?: string | null;
   department_name?: string | null;
   room_id?: number | null;
+  room_code?: string | null;
   room_name?: string | null;
   position?: string | null;
 }
@@ -33,6 +39,19 @@ interface MessageResponse {
   message?: string;
 }
 
+interface UpdateProfileResponse {
+  user: ApiUser;
+  message?: string;
+}
+
+export interface UpdateProfilePayload {
+  full_name: string;
+  gender: string;
+  date_of_birth: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
 export interface AuthUser {
   id: number;
   username: string;
@@ -42,9 +61,15 @@ export interface AuthUser {
   status: string;
   employeeId?: number | null;
   employeeCode?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  phone?: string | null;
+  email?: string | null;
   departmentId?: number | null;
+  departmentCode?: string | null;
   departmentName?: string | null;
   roomId?: number | null;
+  roomCode?: string | null;
   roomName?: string | null;
   position?: string | null;
 }
@@ -98,9 +123,15 @@ function normalizeUser(user: ApiUser): AuthUser {
     status: user.status,
     employeeId: user.employee_id,
     employeeCode: user.employee_code,
+    gender: user.gender,
+    dateOfBirth: user.date_of_birth,
+    phone: user.phone,
+    email: user.email,
     departmentId: user.department_id,
+    departmentCode: user.department_code,
     departmentName: user.department_name,
     roomId: user.room_id,
+    roomCode: user.room_code,
     roomName: user.room_name,
     position: user.position,
   };
@@ -116,7 +147,7 @@ export async function login(username: string, password: string): Promise<AuthSes
   const body = await readResponseJson<LoginResponse>(response);
 
   if (!response.ok) {
-    throw new Error(body.message || "Dang nhap that bai");
+    throw new Error(body.message || "Đăng nhập thất bại");
   }
 
   return {
@@ -134,13 +165,17 @@ export async function getCurrentUser(token: string): Promise<AuthUser> {
   const body = await readResponseJson<MeResponse>(response);
 
   if (!response.ok) {
-    throw new Error(body.message || "Phien dang nhap khong hop le");
+    throw new Error(body.message || "Phiên đăng nhập không hợp lệ");
   }
 
   return normalizeUser(body.user);
 }
 
-export async function changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+) {
   const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
     method: "PATCH",
     headers: {
@@ -161,4 +196,29 @@ export async function changePassword(currentPassword: string, newPassword: strin
   }
 
   return body.message || "Đổi mật khẩu thành công.";
+}
+
+export async function updateProfile(payload: UpdateProfilePayload): Promise<{
+  message: string;
+  user: AuthUser;
+}> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getStoredToken()}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await readResponseJson<UpdateProfileResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(body.message || "Không thể cập nhật thông tin cá nhân.");
+  }
+
+  return {
+    message: body.message || "Cập nhật thông tin cá nhân thành công.",
+    user: normalizeUser(body.user),
+  };
 }

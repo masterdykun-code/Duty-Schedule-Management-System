@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticateToken, authorizeRoles } from "../auth/auth.middleware.js";
 import { roles } from "../auth/roles.js";
+import { listActivityLogs } from "./activity/activity.controller.js";
 import {
   createEmployee,
   createShift,
@@ -20,6 +21,7 @@ router.use(authenticateToken, authorizeRoles(roles.ADMIN));
 
 router.get("/departments", listDepartments);
 router.get("/rooms", listRooms);
+router.get("/activity-logs", listActivityLogs);
 
 router.get("/employees", listEmployees);
 router.post("/employees", createEmployee);

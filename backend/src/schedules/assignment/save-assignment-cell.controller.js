@@ -1,4 +1,6 @@
 import { pool } from "../../db.js";
+import { recordActivityLog } from "../../activity/activity.service.js";
+import { createNotificationsForEmployeeIds } from "../../notifications/notification.service.js";
 import { isValidIsoDate } from "../common/schedule-date.js";
 import { parsePositiveId, uniquePositiveIds } from "../common/schedule-ids.js";
 import { getAssignmentCellContext, upsertAssignedSchedule } from "./assignment.service.js";
@@ -108,8 +110,11 @@ export async function saveAssignmentCell(req, res) {
       );
     }
 
+    let createdCount = 0;
+    let updatedCount = 0;
+
     for (const employeeId of employeeIds) {
-      await upsertAssignedSchedule(client, {
+      const action = await upsertAssignedSchedule(client, {
         employeeId,
         departmentId: context.department_id,
         roomId,
@@ -117,6 +122,80 @@ export async function saveAssignmentCell(req, res) {
         dutyDate,
         assignedByUserId: req.user.sub,
         note,
+      });
+
+      if (action === "created") {
+        createdCount += 1;
+      } else {
+        updatedCount += 1;
+      }
+    }
+
+    await recordActivityLog(client, {
+      req,
+      action: "ASSIGN_SCHEDULE_MANUAL",
+      entityType: "schedules",
+      description: `Phan cong thu cong ngay ${dutyDate}, phong ${context.room_code}, ca ${context.shift_code}`,
+      metadata: {
+        duty_date: dutyDate,
+        department_id: context.department_id,
+        department_code: context.department_code,
+        room_id: roomId,
+        room_code: context.room_code,
+        shift_id: shiftId,
+        shift_code: context.shift_code,
+        employee_ids: employeeIds,
+        created_count: createdCount,
+        updated_count: updatedCount,
+        removed_count: removedScheduleIds.length,
+        note,
+      },
+    });
+
+    if (employeeIds.length > 0) {
+      await createNotificationsForEmployeeIds(client, {
+        employeeIds,
+        senderUserId: req.user.sub,
+        title: "Lich truc moi",
+        message: `Ban co lich truc ${context.shift_name} ngay ${dutyDate} tai phong ${context.room_code}.`,
+        notificationType: "SCHEDULE_ASSIGNED",
+        entityType: "schedules",
+        linkTarget: "personal_schedule",
+        metadata: {
+          duty_date: dutyDate,
+          department_id: context.department_id,
+          department_code: context.department_code,
+          room_id: roomId,
+          room_code: context.room_code,
+          shift_id: shiftId,
+          shift_code: context.shift_code,
+        },
+      });
+    }
+
+    if (removedScheduleIds.length > 0) {
+      const removedEmployeeIds = currentResult.rows
+        .filter((schedule) => !selectedEmployeeSet.has(Number(schedule.employee_id)))
+        .map((schedule) => Number(schedule.employee_id));
+
+      await createNotificationsForEmployeeIds(client, {
+        employeeIds: removedEmployeeIds,
+        senderUserId: req.user.sub,
+        title: "Lich truc da thay doi",
+        message: `Ca truc ${context.shift_name} ngay ${dutyDate} tai phong ${context.room_code} da duoc cap nhat.`,
+        notificationType: "SCHEDULE_UPDATED",
+        entityType: "schedules",
+        linkTarget: "personal_schedule",
+        metadata: {
+          duty_date: dutyDate,
+          department_id: context.department_id,
+          department_code: context.department_code,
+          room_id: roomId,
+          room_code: context.room_code,
+          shift_id: shiftId,
+          shift_code: context.shift_code,
+          removed_schedule_ids: removedScheduleIds,
+        },
       });
     }
 
