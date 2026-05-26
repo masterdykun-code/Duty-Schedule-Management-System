@@ -80,11 +80,9 @@ export interface AuthSession {
   expiresIn?: number;
 }
 
-const importMetaWithEnv = import.meta as ImportMeta & {
-  env?: { VITE_API_URL?: string };
-};
+const configuredApiBaseUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "");
 
-export const API_BASE_URL = importMetaWithEnv.env?.VITE_API_URL || "http://localhost:3000";
+export const API_BASE_URL = configuredApiBaseUrl || "http://localhost:3000";
 export const AUTH_SESSION_KEY = "medschedule_auth_session";
 
 const roleByApiRole: Record<ApiRole, Role> = {
