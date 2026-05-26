@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, Check, RefreshCw, X, XCircle } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  X,
+  XCircle,
+} from "lucide-react";
 import {
   fetchSwapRequests,
   respondSwapRequestAction,
@@ -28,6 +36,8 @@ const filterOptions: { value: RequestFilter; label: string }[] = [
   { value: "REJECTED", label: "Bị từ chối" },
   { value: "EXPIRED", label: "Hết hạn" },
 ];
+
+const REQUESTS_PER_PAGE = 9;
 
 function toBadgeStatus(status: string): BadgeStatus {
   if (status === "PENDING_RESPONSE") return "waiting_response";
@@ -71,9 +81,26 @@ function getActionText(request: SwapRequestRecord) {
   };
 }
 
+function getVisiblePageItems(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "ellipsis-end", totalPages] as const;
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [1, "ellipsis-start", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages] as const;
+  }
+
+  return [1, "ellipsis-start", currentPage - 1, currentPage, currentPage + 1, "ellipsis-end", totalPages] as const;
+}
+
 export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
   const [requests, setRequests] = useState<SwapRequestRecord[]>([]);
   const [filterStatus, setFilterStatus] = useState<RequestFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [actionNote, setActionNote] = useState("");
   const [loading, setLoading] = useState(true);
@@ -113,12 +140,32 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
     return requests.filter((request) => request.status === filterStatus);
   }, [filterStatus, requests]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / REQUESTS_PER_PAGE));
+  const pageStartIndex = (currentPage - 1) * REQUESTS_PER_PAGE;
+  const pageEndIndex = Math.min(pageStartIndex + REQUESTS_PER_PAGE, filteredRequests.length);
+  const paginatedRequests = filteredRequests.slice(pageStartIndex, pageEndIndex);
+  const visiblePageItems = getVisiblePageItems(currentPage, totalPages);
   const selected = requests.find((request) => request.requestId === selectedId) || null;
   const selectedActionText = selected ? getActionText(selected) : null;
 
   useEffect(() => {
     setActionNote("");
   }, [selectedId]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  function handleFilterChange(status: RequestFilter) {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  }
+
+  function goToPage(page: number) {
+    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
+  }
 
   async function handleAction(positive: boolean) {
     if (!selected || !canAct(selected)) return;
@@ -164,7 +211,7 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
           <button
             key={option.value}
             type="button"
-            onClick={() => setFilterStatus(option.value)}
+            onClick={() => handleFilterChange(option.value)}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
               filterStatus === option.value
                 ? "bg-teal-700 text-white"
@@ -210,7 +257,7 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
                   </tr>
                 )}
 
-                {!loading && filteredRequests.map((request) => (
+                {!loading && paginatedRequests.map((request) => (
                   <tr
                     key={request.requestId}
                     className={`hover:bg-gray-50 cursor-pointer ${selectedId === request.requestId ? "bg-teal-50" : ""}`}
@@ -253,6 +300,57 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
               </tbody>
             </table>
           </div>
+
+          {!loading && filteredRequests.length > 0 && (
+            <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+              <div className="text-xs text-gray-500">
+                Hiển thị {pageStartIndex + 1}-{pageEndIndex} / {filteredRequests.length} yêu cầu
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Trang trước"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {visiblePageItems.map((item) => (
+                  typeof item === "number" ? (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => goToPage(item)}
+                      className={`h-8 min-w-8 rounded-md px-2 text-xs font-semibold transition-colors ${
+                        currentPage === item
+                          ? "bg-teal-700 text-white"
+                          : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  ) : (
+                    <span key={item} className="px-1 text-xs font-semibold text-gray-400">
+                      ...
+                    </span>
+                  )
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Trang sau"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {selected && (

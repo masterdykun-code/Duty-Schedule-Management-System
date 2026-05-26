@@ -16,7 +16,7 @@ export function createApp() {
 
   app.get("/", (req, res) => {
     res.json({
-      message: "Backend Node.js + PostgreSQL dang chay",
+      message: "Backend Node.js + PostgreSQL đang chạy",
     });
   });
 

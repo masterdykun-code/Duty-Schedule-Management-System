@@ -14,7 +14,7 @@ export async function login(req, res) {
 
     if (!username || !password) {
       return res.status(400).json({
-        message: "username va password la bat buoc",
+        message: "Tên đăng nhập và mật khẩu là bắt buộc",
       });
     }
 
@@ -27,13 +27,13 @@ export async function login(req, res) {
 
     if (!user || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({
-        message: "Sai ten dang nhap hoac mat khau",
+        message: "Sai tên đăng nhập hoặc mật khẩu",
       });
     }
 
     if (user.status !== "ACTIVE") {
       return res.status(403).json({
-        message: "Tai khoan da bi khoa",
+        message: "Tài khoản đã bị khóa",
       });
     }
 
@@ -47,21 +47,21 @@ export async function login(req, res) {
       action: "LOGIN",
       entityType: "users",
       entityId: user.user_id,
-      description: `Dang nhap tai khoan ${user.username}`,
+      description: `Đăng nhập tài khoản ${user.username}`,
       metadata: {
         user_id: user.user_id,
       },
     });
 
     res.json({
-      message: "Dang nhap thanh cong",
+      message: "Đăng nhập thành công",
       token: createToken(user),
       expires_in: getTokenTtlSeconds(),
       user: toPublicUser(user),
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi dang nhap",
+      message: "Lỗi khi đăng nhập",
       error: error.message,
     });
   }
@@ -78,7 +78,7 @@ export async function getCurrentUser(req, res) {
 
     if (!user || user.status !== "ACTIVE") {
       return res.status(401).json({
-        message: "Tai khoan khong con hoat dong",
+        message: "Tài khoản không còn hoạt động",
       });
     }
 
@@ -87,7 +87,7 @@ export async function getCurrentUser(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay thong tin dang nhap",
+      message: "Lỗi khi lấy thông tin đăng nhập",
       error: error.message,
     });
   }
@@ -99,13 +99,13 @@ export async function changePassword(req, res) {
 
     if (!current_password || !new_password || !confirm_password) {
       return res.status(400).json({
-        message: "Vui long nhap day du mat khau cu, mat khau moi va xac nhan mat khau",
+        message: "Vui lòng nhập đầy đủ mật khẩu cũ, mật khẩu mới và xác nhận mật khẩu",
       });
     }
 
     if (new_password !== confirm_password) {
       return res.status(400).json({
-        message: "Mat khau moi va xac nhan mat khau khong khop",
+        message: "Mật khẩu mới và xác nhận mật khẩu không khớp",
       });
     }
 
@@ -118,13 +118,13 @@ export async function changePassword(req, res) {
 
     if (!user || user.status !== "ACTIVE") {
       return res.status(401).json({
-        message: "Tai khoan khong con hoat dong",
+        message: "Tài khoản không còn hoạt động",
       });
     }
 
     if (!verifyPassword(current_password, user.password_hash)) {
       return res.status(400).json({
-        message: "Mat khau cu khong dung",
+        message: "Mật khẩu cũ không đúng",
       });
     }
 
@@ -138,18 +138,18 @@ export async function changePassword(req, res) {
       action: "CHANGE_PASSWORD",
       entityType: "users",
       entityId: user.user_id,
-      description: `Doi mat khau tai khoan ${req.user.username}`,
+      description: `Đổi mật khẩu tài khoản ${req.user.username}`,
       metadata: {
         user_id: user.user_id,
       },
     });
 
     res.json({
-      message: "Doi mat khau thanh cong",
+      message: "Đổi mật khẩu thành công",
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi doi mat khau",
+      message: "Lỗi khi đổi mật khẩu",
       error: error.message,
     });
   }
@@ -165,7 +165,7 @@ export async function updateCurrentUserProfile(req, res) {
 
     if (!employee) {
       return res.status(400).json({
-        message: "Tai khoan nay chua lien ket voi nhan vien y te",
+        message: "Tài khoản này chưa liên kết với nhân viên y tế",
       });
     }
 
@@ -176,21 +176,21 @@ export async function updateCurrentUserProfile(req, res) {
     const email = typeof req.body.email === "string" ? req.body.email.trim() : "";
 
     if (!fullName) {
-      return res.status(400).json({ message: "Vui long nhap ho ten" });
+      return res.status(400).json({ message: "Vui lòng nhập họ tên" });
     }
 
     if (!allowedGenders.includes(gender)) {
-      return res.status(400).json({ message: "Gioi tinh khong hop le" });
+      return res.status(400).json({ message: "Giới tính không hợp lệ" });
     }
 
     if (phone && !phonePattern.test(phone)) {
       return res.status(400).json({
-        message: "So dien thoai phai gom dung 10 chu so",
+        message: "Số điện thoại phải gồm đúng 10 chữ số",
       });
     }
 
     if (email && !emailPattern.test(email)) {
-      return res.status(400).json({ message: "Email khong dung dinh dang" });
+      return res.status(400).json({ message: "Email không đúng định dạng" });
     }
 
     await pool.query(
@@ -212,7 +212,7 @@ export async function updateCurrentUserProfile(req, res) {
       action: "UPDATE_PROFILE",
       entityType: "employees",
       entityId: employee.employee_id,
-      description: `Cap nhat thong tin ca nhan ${req.user.username}`,
+      description: `Cập nhật thông tin cá nhân ${req.user.username}`,
       metadata: {
         employee_id: employee.employee_id,
       },
@@ -224,13 +224,13 @@ export async function updateCurrentUserProfile(req, res) {
     );
 
     res.json({
-      message: "Cap nhat thong tin ca nhan thanh cong",
+      message: "Cập nhật thông tin cá nhân thành công",
       user: toPublicUser(userResult.rows[0]),
     });
   } catch (error) {
     const isUniqueEmail = error.code === "23505";
     res.status(isUniqueEmail ? 400 : 500).json({
-      message: isUniqueEmail ? "Email da duoc su dung" : "Loi khi cap nhat thong tin ca nhan",
+      message: isUniqueEmail ? "Email đã được sử dụng" : "Lỗi khi cập nhật thông tin cá nhân",
       error: error.message,
     });
   }

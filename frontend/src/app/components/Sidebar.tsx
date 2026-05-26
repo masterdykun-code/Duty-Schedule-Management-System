@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { NavLink } from "react-router";
 import {
   Activity,
   ArrowLeftRight,
@@ -10,17 +11,7 @@ import {
   Stethoscope,
   Users,
 } from "lucide-react";
-import type { Role } from "./Header";
-
-type Page =
-  | "dashboard"
-  | "staff_management"
-  | "shift_management"
-  | "shift_assignment"
-  | "general_schedule"
-  | "activity_logs"
-  | "personal_schedule"
-  | "exchange_requests";
+import { getPagePath, type Page, type Role } from "../routes";
 
 interface NavItem {
   id: Page;
@@ -66,11 +57,10 @@ const navByRole: Record<Role, NavItem[]> = {
 interface SidebarProps {
   role: Role;
   currentPage: Page;
-  onNavigate: (page: Page) => void;
   onLogout: () => void;
 }
 
-export function Sidebar({ role, currentPage, onNavigate, onLogout }: SidebarProps) {
+export function Sidebar({ role, currentPage, onLogout }: SidebarProps) {
   const navItems = navByRole[role];
 
   return (
@@ -90,9 +80,10 @@ export function Sidebar({ role, currentPage, onNavigate, onLogout }: SidebarProp
           const active = currentPage === item.id;
 
           return (
-            <button
+            <NavLink
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              to={getPagePath(item.id)}
+              aria-current={active ? "page" : undefined}
               className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm transition-colors text-left ${
                 active
                   ? "bg-white text-teal-800 font-semibold shadow-sm"
@@ -101,7 +92,7 @@ export function Sidebar({ role, currentPage, onNavigate, onLogout }: SidebarProp
             >
               <span className={active ? "text-teal-700" : "text-teal-100"}>{item.icon}</span>
               <span className="leading-snug">{item.label}</span>
-            </button>
+            </NavLink>
           );
         })}
       </nav>
@@ -118,5 +109,3 @@ export function Sidebar({ role, currentPage, onNavigate, onLogout }: SidebarProp
     </aside>
   );
 }
-
-export type { Page };

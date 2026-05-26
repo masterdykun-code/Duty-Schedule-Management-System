@@ -1,4 +1,4 @@
-import type { Role } from "../components/Header";
+import type { Role } from "../routes";
 
 type ApiRole = "ADMIN" | "MEDICAL_STAFF" | "DEPARTMENT_HEAD" | "OFFICE";
 

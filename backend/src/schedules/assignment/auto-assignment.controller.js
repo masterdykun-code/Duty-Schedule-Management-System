@@ -12,7 +12,7 @@ export async function autoAssignSchedule(req, res) {
 
     if (!weekStart) {
       return res.status(400).json({
-        message: "week_start phai co dinh dang YYYY-MM-DD",
+        message: "week_start phải có định dạng YYYY-MM-DD",
       });
     }
 
@@ -87,7 +87,7 @@ export async function autoAssignSchedule(req, res) {
       req,
       action: "ASSIGN_SCHEDULE_AUTO",
       entityType: "schedules",
-      description: `Phan cong tu dong tuan bat dau ${weekStart}`,
+      description: `Phân công tự động tuần bắt đầu ${weekStart}`,
       metadata: {
         week_start: weekStart,
         created_count: createdCount,
@@ -100,8 +100,8 @@ export async function autoAssignSchedule(req, res) {
       await createNotificationsForEmployeeIds(client, {
         employeeIds: assignedEmployeeIds,
         senderUserId: req.user.sub,
-        title: "Lich truc tuan moi",
-        message: `Ban co lich truc moi trong tuan bat dau ${weekStart}.`,
+        title: "Lịch trực tuần mới",
+        message: `Bạn có lịch trực mới trong tuần bắt đầu ${weekStart}.`,
         notificationType: "SCHEDULE_ASSIGNED",
         entityType: "schedules",
         linkTarget: "personal_schedule",
@@ -118,8 +118,8 @@ export async function autoAssignSchedule(req, res) {
     res.json({
       message:
         remaining.length === 0
-          ? "Phan cong tu dong thanh cong"
-          : "Phan cong tu dong mot phan, van con ca thieu nhan vien",
+          ? "Phân công tự động thành công"
+          : "Phân công tự động một phần, vẫn còn ca thiếu nhân viên",
       created_count: createdCount,
       updated_count: updatedCount,
       remaining_missing_count: remaining.length,
@@ -129,7 +129,7 @@ export async function autoAssignSchedule(req, res) {
     await client.query("ROLLBACK");
     const isConflict = ["23505", "23514"].includes(error.code);
     res.status(isConflict ? 400 : 500).json({
-      message: isConflict ? error.message : "Loi khi phan cong tu dong",
+      message: isConflict ? error.message : "Lỗi khi phân công tự động",
       error: error.message,
     });
   } finally {

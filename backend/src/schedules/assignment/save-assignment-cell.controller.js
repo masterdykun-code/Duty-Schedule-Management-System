@@ -19,7 +19,7 @@ export async function saveAssignmentCell(req, res) {
 
     if (!isValidIsoDate(dutyDate) || !roomId || !shiftId || !employeeIds) {
       return res.status(400).json({
-        message: "Du lieu phan cong khong hop le",
+        message: "Dữ liệu phân công không hợp lệ",
       });
     }
 
@@ -29,14 +29,14 @@ export async function saveAssignmentCell(req, res) {
     if (!context) {
       await client.query("ROLLBACK");
       return res.status(400).json({
-        message: "Ca truc nay khong ap dung cho phong/khoa da chon",
+        message: "Ca trực này không áp dụng cho phòng/khoa đã chọn",
       });
     }
 
     if (employeeIds.length > context.max_staff) {
       await client.query("ROLLBACK");
       return res.status(400).json({
-        message: `Chi duoc phan cong toi da ${context.max_staff} nguoi cho ca nay`,
+        message: `Chỉ được phân công tối đa ${context.max_staff} người cho ca này`,
       });
     }
 
@@ -55,7 +55,7 @@ export async function saveAssignmentCell(req, res) {
       if (employeesResult.rowCount !== employeeIds.length) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: "Nhan vien duoc chon khong hop le hoac khong thuoc khoa nay",
+          message: "Nhân viên được chọn không hợp lệ hoặc không thuộc khoa này",
         });
       }
 
@@ -77,7 +77,7 @@ export async function saveAssignmentCell(req, res) {
       if (busyResult.rowCount > 0) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: `${busyResult.rows[0].full_name} da duoc phan cong ca nay tai phong ${busyResult.rows[0].room_code}`,
+          message: `${busyResult.rows[0].full_name} đã được phân công ca này tại phòng ${busyResult.rows[0].room_code}`,
         });
       }
     }
@@ -135,7 +135,7 @@ export async function saveAssignmentCell(req, res) {
       req,
       action: "ASSIGN_SCHEDULE_MANUAL",
       entityType: "schedules",
-      description: `Phan cong thu cong ngay ${dutyDate}, phong ${context.room_code}, ca ${context.shift_code}`,
+      description: `Phân công thủ công ngày ${dutyDate}, phòng ${context.room_code}, ca ${context.shift_code}`,
       metadata: {
         duty_date: dutyDate,
         department_id: context.department_id,
@@ -156,8 +156,8 @@ export async function saveAssignmentCell(req, res) {
       await createNotificationsForEmployeeIds(client, {
         employeeIds,
         senderUserId: req.user.sub,
-        title: "Lich truc moi",
-        message: `Ban co lich truc ${context.shift_name} ngay ${dutyDate} tai phong ${context.room_code}.`,
+        title: "Lịch trực mới",
+        message: `Bạn có lịch trực ${context.shift_name} ngày ${dutyDate} tại phòng ${context.room_code}.`,
         notificationType: "SCHEDULE_ASSIGNED",
         entityType: "schedules",
         linkTarget: "personal_schedule",
@@ -181,8 +181,8 @@ export async function saveAssignmentCell(req, res) {
       await createNotificationsForEmployeeIds(client, {
         employeeIds: removedEmployeeIds,
         senderUserId: req.user.sub,
-        title: "Lich truc da thay doi",
-        message: `Ca truc ${context.shift_name} ngay ${dutyDate} tai phong ${context.room_code} da duoc cap nhat.`,
+        title: "Lịch trực đã thay đổi",
+        message: `Ca trực ${context.shift_name} ngày ${dutyDate} tại phòng ${context.room_code} đã được cập nhật.`,
         notificationType: "SCHEDULE_UPDATED",
         entityType: "schedules",
         linkTarget: "personal_schedule",
@@ -202,13 +202,13 @@ export async function saveAssignmentCell(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: "Luu phan cong thanh cong",
+      message: "Lưu phân công thành công",
     });
   } catch (error) {
     await client.query("ROLLBACK");
     const isConflict = ["23505", "23514"].includes(error.code);
     res.status(isConflict ? 400 : 500).json({
-      message: isConflict ? error.message : "Loi khi luu phan cong",
+      message: isConflict ? error.message : "Lỗi khi lưu phân công",
       error: error.message,
     });
   } finally {

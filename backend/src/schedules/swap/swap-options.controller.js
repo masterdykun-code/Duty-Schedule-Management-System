@@ -10,7 +10,7 @@ export async function getSwapOptions(req, res) {
     const shiftId = parsePositiveId(req.query.shift_id);
 
     if (!sourceScheduleId) {
-      return res.status(400).json({ message: "source_schedule_id khong hop le" });
+      return res.status(400).json({ message: "Mã ca trực nguồn không hợp lệ" });
     }
 
     const result = await getSwapCandidates(pool, {
@@ -30,7 +30,7 @@ export async function getSwapOptions(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach nhan vien co the doi ca",
+      message: "Lỗi khi lấy danh sách nhân viên co the doi ca",
       error: error.message,
     });
   }

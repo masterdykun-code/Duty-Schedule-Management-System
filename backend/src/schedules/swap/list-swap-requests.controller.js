@@ -16,7 +16,7 @@ export async function getSwapRequests(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach yeu cau doi ca",
+      message: "Lỗi khi lấy danh sách yêu cầu đổi ca",
       error: error.message,
     });
   }

@@ -20,7 +20,7 @@ router.get("/:table", authenticateToken, authorizeTableRead, async (req, res) =>
 
     if (!allowedTables.includes(table)) {
       return res.status(400).json({
-        message: "Ten bang khong hop le",
+        message: "Tên bảng không hợp lệ",
       });
     }
 
@@ -33,7 +33,7 @@ router.get("/:table", authenticateToken, authorizeTableRead, async (req, res) =>
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay du lieu",
+      message: "Lỗi khi lấy dữ liệu",
       error: error.message,
     });
   }

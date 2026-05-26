@@ -13,12 +13,12 @@ export async function respondSwapRequest(req, res) {
   try {
     const requestId = parsePositiveId(req.params.requestId);
     if (!requestId) {
-      return res.status(400).json({ message: "requestId khong hop le" });
+      return res.status(400).json({ message: "Mã yêu cầu không hợp lệ" });
     }
 
     const { accepted, note } = req.body;
     if (typeof accepted !== "boolean") {
-      return res.status(400).json({ message: "Vui long chon dong y hoac tu choi" });
+      return res.status(400).json({ message: "Vui lòng chọn đồng ý hoặc từ chối" });
     }
 
     await client.query("BEGIN");
@@ -41,8 +41,8 @@ export async function respondSwapRequest(req, res) {
       entityType: "swap_requests",
       entityId: result.request.request_id,
       description: accepted
-        ? `Dong y yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")}`
-        : `Tu choi yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")}`,
+        ? `Đồng ý yêu cầu đổi ca YC${String(result.request.request_id).padStart(3, "0")}`
+        : `Từ chối yêu cầu đổi ca YC${String(result.request.request_id).padStart(3, "0")}`,
       metadata: {
         request_id: result.request.request_id,
         accepted,
@@ -54,10 +54,10 @@ export async function respondSwapRequest(req, res) {
     await createNotificationsForEmployeeIds(client, {
       employeeIds: [result.context.requester_employee_id],
       senderUserId: req.user.sub,
-      title: accepted ? "Yeu cau doi ca da duoc phan hoi" : "Yeu cau doi ca bi tu choi",
+      title: accepted ? "Yêu cầu đổi ca đã được phản hồi" : "Yêu cầu đổi ca bị từ chối",
       message: accepted
-        ? `Yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")} da duoc dong y.`
-        : `Yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")} da bi tu choi.`,
+        ? `Yêu cầu đổi ca YC${String(result.request.request_id).padStart(3, "0")} đã được đồng ý.`
+        : `Yêu cầu đổi ca YC${String(result.request.request_id).padStart(3, "0")} đã bị từ chối.`,
       notificationType: accepted
         ? (result.request.status === "APPROVED" ? "SWAP_REQUEST_APPROVED" : "SWAP_REQUEST_RESPONDED")
         : "SWAP_REQUEST_REJECTED",
@@ -74,8 +74,8 @@ export async function respondSwapRequest(req, res) {
       await createNotificationsForDepartmentHeads(client, {
         departmentId: result.context.source_department_id,
         senderUserId: req.user.sub,
-        title: "Yeu cau doi ca cho duyet",
-        message: `Co yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")} can truong khoa xu ly.`,
+        title: "Yêu cầu đổi ca chờ duyệt",
+        message: `Có yêu cầu đổi ca YC${String(result.request.request_id).padStart(3, "0")} cần trưởng khoa xử lý.`,
         notificationType: "SWAP_REQUEST_RESPONDED",
         entityType: "swap_requests",
         entityId: result.request.request_id,
@@ -90,14 +90,14 @@ export async function respondSwapRequest(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: accepted ? "Da phan hoi dong y yeu cau doi ca" : "Da tu choi yeu cau doi ca",
+      message: accepted ? "Đã phản hồi đồng ý yêu cầu đổi ca" : "Đã từ chối yêu cầu đổi ca",
       request_id: result.request.request_id,
       status: result.request.status,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({
-      message: "Loi khi phan hoi yeu cau doi ca",
+      message: "Lỗi khi phản hồi yêu cầu đổi ca",
       error: error.message,
     });
   } finally {

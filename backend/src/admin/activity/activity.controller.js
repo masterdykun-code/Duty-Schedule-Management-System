@@ -96,7 +96,7 @@ export async function listActivityLogs(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay nhat ky hoat dong",
+      message: "Lỗi khi lấy nhật ký hoạt động",
       error: error.message,
     });
   }
