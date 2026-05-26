@@ -12,6 +12,7 @@ import {
   type ShiftPayload,
   type ShiftRecord,
 } from "../../lib/adminApi";
+import { DEFAULT_LIST_PAGE_SIZE, ListPagination } from "../shared/ListPagination";
 
 type ShiftStatus = "active" | "inactive";
 
@@ -50,6 +51,7 @@ const emptyForm: ShiftForm = {
 };
 
 const shiftTypeLabel = Object.fromEntries(shiftTypes.map((type) => [type.value, type.label]));
+const SHIFTS_PER_PAGE = DEFAULT_LIST_PAGE_SIZE;
 
 export function ShiftManagement() {
   const [shifts, setShifts] = useState<ShiftRecord[]>([]);
@@ -61,6 +63,7 @@ export function ShiftManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -68,6 +71,17 @@ export function ShiftManagement() {
 
   const activeDepartments = departments.filter((department) => department.status === "ACTIVE");
   const selectedDepartmentIds = new Set(form.departments.map((department) => department.departmentId));
+  const totalPages = Math.max(1, Math.ceil(shifts.length / SHIFTS_PER_PAGE));
+  const pageStartIndex = (currentPage - 1) * SHIFTS_PER_PAGE;
+  const paginatedShifts = shifts.slice(pageStartIndex, pageStartIndex + SHIFTS_PER_PAGE);
+  const visibleStart = shifts.length === 0 ? 0 : pageStartIndex + 1;
+  const visibleEnd = Math.min(pageStartIndex + paginatedShifts.length, shifts.length);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   async function loadData() {
     try {
@@ -293,7 +307,7 @@ export function ShiftManagement() {
             {loading && (
               <tr><td colSpan={9} className="text-center py-10 text-gray-400">Đang tải danh sách ca trực...</td></tr>
             )}
-            {!loading && shifts.map((shift) => (
+            {!loading && paginatedShifts.map((shift) => (
               <tr key={shift.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3.5 font-mono text-gray-500 text-xs">{shift.code}</td>
                 <td className="px-4 py-3.5 font-medium text-gray-800">{shift.name}</td>
@@ -322,9 +336,17 @@ export function ShiftManagement() {
             )}
           </tbody>
         </table>
-        <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-500">
-          Tổng cộng {shifts.length} ca trực
-        </div>
+        {!loading && (
+          <ListPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={shifts.length}
+            pageStart={visibleStart}
+            pageEnd={visibleEnd}
+            itemLabel="ca trực"
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {deactivateConfirm && (

@@ -64,18 +64,21 @@ export function Sidebar({ role, currentPage, onLogout }: SidebarProps) {
   const navItems = navByRole[role];
 
   return (
-    <aside className="w-64 bg-[#0F766E] min-h-screen fixed top-0 left-0 flex flex-col z-20">
-      <div className="h-16 flex items-center gap-3 px-5 border-b border-teal-600">
-        <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center">
+    <aside
+      tabIndex={0}
+      className="group fixed left-0 top-0 z-40 flex min-h-screen w-16 flex-col overflow-hidden bg-[#0F766E] shadow-xl transition-[width] duration-200 ease-out hover:w-72 focus-within:w-72"
+    >
+      <div className="flex h-16 items-center gap-0 border-b border-teal-600 px-3 transition-[gap] duration-200 group-hover:gap-3 group-focus-within:gap-3">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white">
           <Stethoscope size={18} className="text-teal-700" />
         </div>
-        <div className="flex flex-col">
+        <div className="flex max-w-0 flex-col overflow-hidden opacity-0 transition-all duration-200 group-hover:max-w-48 group-hover:opacity-100 group-focus-within:max-w-48 group-focus-within:opacity-100">
           <span className="text-white font-semibold text-base leading-tight">MedSchedule</span>
           <span className="text-teal-200 text-xs leading-tight">Quản lý lịch trực</span>
         </div>
       </div>
 
-      <nav className="flex-1 py-5 px-3.5 space-y-1.5">
+      <nav className="flex-1 space-y-1.5 px-2 py-5">
         {navItems.map((item) => {
           const active = currentPage === item.id;
 
@@ -83,27 +86,35 @@ export function Sidebar({ role, currentPage, onLogout }: SidebarProps) {
             <NavLink
               key={item.id}
               to={getPagePath(item.id)}
+              title={item.label}
               aria-current={active ? "page" : undefined}
-              className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm transition-colors text-left ${
+              className={`flex h-12 w-full items-center justify-center gap-0 rounded-xl px-0 text-left text-sm transition-[gap,padding,background-color,color,box-shadow] duration-200 group-hover:justify-start group-hover:gap-3.5 group-hover:px-4 group-focus-within:justify-start group-focus-within:gap-3.5 group-focus-within:px-4 ${
                 active
                   ? "bg-white text-teal-800 font-semibold shadow-sm"
                   : "text-teal-50 hover:bg-teal-700 hover:text-white"
               }`}
             >
-              <span className={active ? "text-teal-700" : "text-teal-100"}>{item.icon}</span>
-              <span className="leading-snug">{item.label}</span>
+              <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center ${active ? "text-teal-700" : "text-teal-100"}`}>{item.icon}</span>
+              <span className="max-w-0 overflow-hidden whitespace-nowrap leading-snug opacity-0 transition-all duration-200 group-hover:max-w-56 group-hover:opacity-100 group-focus-within:max-w-56 group-focus-within:opacity-100">
+                {item.label}
+              </span>
             </NavLink>
           );
         })}
       </nav>
 
-      <div className="p-3.5 border-t border-teal-600">
+      <div className="border-t border-teal-600 p-2">
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-medium text-teal-50 hover:bg-teal-700 hover:text-white transition-colors"
+          title="Đăng xuất"
+          className="flex h-12 w-full items-center justify-center gap-0 rounded-xl px-0 text-sm font-medium text-teal-50 transition-[gap,padding,background-color,color] duration-200 hover:bg-teal-700 hover:text-white group-hover:justify-start group-hover:gap-3.5 group-hover:px-4 group-focus-within:justify-start group-focus-within:gap-3.5 group-focus-within:px-4"
         >
-          <LogOut size={19} />
-          Đăng xuất
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
+            <LogOut size={19} />
+          </span>
+          <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-200 group-hover:max-w-40 group-hover:opacity-100 group-focus-within:max-w-40 group-focus-within:opacity-100">
+            Đăng xuất
+          </span>
         </button>
       </div>
     </aside>

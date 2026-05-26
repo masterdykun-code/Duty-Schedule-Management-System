@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { Stethoscope, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { login as loginRequest, type AuthSession } from "../lib/auth";
+import loginBackground from "../../assets/login-medical-bg.svg";
 
 interface LoginProps {
   onLogin: (session: AuthSession) => void;
 }
-
-const demoAccounts = [
-  { username: "admin", password: "123456", label: "Quản trị" },
-  { username: "bs_an", password: "123456", label: "Nhân viên" },
-  { username: "truong_kcc", password: "123456", label: "Trưởng khoa" },
-  { username: "phong_hanh_chinh", password: "123456", label: "Hành chính" },
-];
 
 export function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState("");
@@ -36,7 +30,10 @@ export function Login({ onLogin }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+    <div
+      className="min-h-screen bg-teal-50 bg-cover bg-center bg-no-repeat flex items-center justify-center px-4 py-8"
+      style={{ backgroundImage: `url(${loginBackground})` }}
+    >
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-700 rounded-2xl mb-4 shadow-lg">
@@ -48,7 +45,7 @@ export function Login({ onLogin }: LoginProps) {
           <p className="text-gray-500 text-sm mt-1">Nhân viên y tế</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white/92 rounded-2xl shadow-xl border border-white/70 p-8 backdrop-blur-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-6">Đăng nhập</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,26 +102,9 @@ export function Login({ onLogin }: LoginProps) {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-gray-100">
-            <p className="text-xs text-gray-400 mb-2">Tài khoản demo:</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {demoAccounts.map((a) => (
-                <button
-                  key={a.username}
-                  type="button"
-                  onClick={() => { setUsername(a.username); setPassword(a.password); setError(""); }}
-                  className="text-left px-2.5 py-1.5 bg-gray-50 hover:bg-teal-50 hover:text-teal-700 rounded-md text-xs text-gray-600 transition-colors"
-                >
-                  <span className="font-medium">{a.username}</span>
-                  <span className="text-gray-400 ml-1">/ 123456</span>
-                  <span className="block text-[11px] text-gray-400">{a.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-teal-900/55 mt-6">
           © 2026 MedSchedule — Hệ thống y tế
         </p>
       </div>

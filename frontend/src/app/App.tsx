@@ -183,9 +183,16 @@ export default function App() {
     }
 
     if (page === "dashboard") {
-      if (role === "admin") return <AdminDashboard onOpenActivityLogs={() => handleNavigate("activity_logs")} />;
-      if (role === "staff") return <StaffDashboard userName={user.name} />;
-      if (role === "head") return <HeadDashboard userName={user.name} />;
+      if (role === "admin") {
+        return (
+          <AdminDashboard
+            onOpenActivityLogs={() => handleNavigate("activity_logs")}
+            onNavigate={handleNavigate}
+          />
+        );
+      }
+      if (role === "staff") return <StaffDashboard userName={user.name} onNavigate={handleNavigate} />;
+      if (role === "head") return <HeadDashboard userName={user.name} onNavigate={handleNavigate} />;
       if (role === "office") return <OfficeDashboard />;
     }
 
@@ -221,8 +228,8 @@ export default function App() {
         onNavigate={handleNavigate}
         onLogout={handleLogout}
       />
-      <main className={`ml-64 pt-16 ${lockPageScroll ? "h-screen overflow-hidden" : "min-h-screen"}`}>
-        <div className={`p-6 ${lockPageScroll ? "h-full overflow-hidden" : ""}`}>
+      <main className={`pl-16 pt-16 ${lockPageScroll ? "h-screen overflow-hidden" : "min-h-screen"}`}>
+        <div className={`p-3 md:p-5 xl:p-6 ${lockPageScroll ? "h-full overflow-hidden" : ""}`}>
           <Routes>
             <Route
               path="/"

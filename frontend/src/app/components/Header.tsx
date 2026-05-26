@@ -259,11 +259,11 @@ export function Header({ user, onUserUpdated, onNavigate, onLogout }: HeaderProp
   }
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-64 right-0 z-10">
-      <h1 className="text-base font-semibold text-gray-800">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between gap-3 px-4 md:px-6 fixed top-0 left-16 right-0 z-30">
+      <h1 className="truncate pl-2 text-sm font-semibold text-teal-700 md:text-base">
         HỆ THỐNG QUẢN LÝ LỊCH TRỰC BỆNH VIỆN
       </h1>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <DropdownMenu
           open={notificationsOpen}
           onOpenChange={(open) => {
@@ -285,7 +285,7 @@ export function Header({ user, onUserUpdated, onNavigate, onLogout }: HeaderProp
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={10} className="w-[360px] p-0 overflow-hidden">
+          <DropdownMenuContent align="end" sideOffset={10} className="w-[min(360px,calc(100vw-24px))] p-0 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <div>
                 <div className="text-sm font-semibold text-gray-900">Thông báo</div>
@@ -360,7 +360,7 @@ export function Header({ user, onUserUpdated, onNavigate, onLogout }: HeaderProp
                 <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-medium">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex flex-col text-left">
+                <div className="hidden flex-col text-left sm:flex">
                   <span className="text-sm font-medium text-gray-800 leading-tight">
                     {user.name}
                   </span>
@@ -391,7 +391,7 @@ export function Header({ user, onUserUpdated, onNavigate, onLogout }: HeaderProp
         </div>
         <button
           onClick={onLogout}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          className="hidden items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors sm:flex"
         >
           <LogOut size={14} />
           Đăng xuất

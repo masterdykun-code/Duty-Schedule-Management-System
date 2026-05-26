@@ -37,9 +37,11 @@ import {
   getActivityActor,
   getActivityRoleLabel,
 } from "./activityLogUtils";
+import type { Page } from "../../routes";
 
 interface AdminDashboardProps {
   onOpenActivityLogs: () => void;
+  onNavigate: (page: Page) => void;
 }
 
 interface StatCardProps {
@@ -55,7 +57,7 @@ function getPromiseError(result: PromiseSettledResult<unknown>) {
   return result.reason instanceof Error ? result.reason.message : "Không thể tải dữ liệu.";
 }
 
-export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
+export function AdminDashboard({ onOpenActivityLogs, onNavigate }: AdminDashboardProps) {
   const weekStart = useMemo(() => getCurrentWeekStart(), []);
   const [staffCount, setStaffCount] = useState(0);
   const [activeShiftCount, setActiveShiftCount] = useState(0);
@@ -83,7 +85,7 @@ export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
         fetchStaff(),
         fetchShifts(),
         fetchGeneralSchedule(weekStart),
-        fetchActivityLogs({ limit: 5 }),
+        fetchActivityLogs({ limit: 4 }),
       ]);
 
       const errors = [staffResult, shiftsResult, scheduleResult, activityResult]
@@ -120,7 +122,7 @@ export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
   const recentSchedules = scheduleItems
     .filter((schedule) => isUpcomingOrToday(schedule.dutyDate))
     .sort(compareDutyTime)
-    .slice(0, 5);
+    .slice(0, 4);
 
   const stats: StatCardProps[] = [
     {
@@ -154,7 +156,7 @@ export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Trang tổng quan</h2>
@@ -179,13 +181,13 @@ export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {stats.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <section className="bg-white rounded-xl border border-gray-200">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h3 className="font-medium text-gray-800">Lịch trực gần nhất</h3>
@@ -218,6 +220,15 @@ export function AdminDashboard({ onOpenActivityLogs }: AdminDashboardProps) {
             {!loading && recentSchedules.length === 0 && (
               <PanelMessage text="Tuần này chưa có lịch trực sắp tới." />
             )}
+          </div>
+          <div className="border-t border-gray-100 px-5 py-3 text-right">
+            <button
+              type="button"
+              onClick={() => onNavigate("general_schedule")}
+              className="inline-flex items-center gap-0.5 text-xs text-teal-600 hover:text-teal-800"
+            >
+              Xem thêm <ChevronRight size={14} />
+            </button>
           </div>
         </section>
 

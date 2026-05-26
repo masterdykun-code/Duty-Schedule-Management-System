@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   Calendar,
   CheckCircle,
+  ChevronRight,
   RefreshCw,
   UserCheck,
 } from "lucide-react";
@@ -29,9 +30,11 @@ import {
   getSwapBadgeStatus,
   isUpcomingOrToday,
 } from "../shared/dashboardUtils";
+import type { Page } from "../../routes";
 
 interface HeadDashboardProps {
   userName: string;
+  onNavigate: (page: Page) => void;
 }
 
 interface StatCardProps {
@@ -47,7 +50,7 @@ function scheduleLine(schedule: SwapRequestSchedule | null) {
   return `${schedule.shiftName} - ${formatDate(schedule.dutyDate)} - ${schedule.roomCode}`;
 }
 
-export function HeadDashboard({ userName }: HeadDashboardProps) {
+export function HeadDashboard({ userName, onNavigate }: HeadDashboardProps) {
   const weekStart = useMemo(() => getCurrentWeekStart(), []);
   const [profile, setProfile] = useState<MyScheduleProfile | null>(null);
   const [schedules, setSchedules] = useState<MyScheduleItem[]>([]);
@@ -94,10 +97,10 @@ export function HeadDashboard({ userName }: HeadDashboardProps) {
   const upcomingSchedules = schedules
     .filter((schedule) => isUpcomingOrToday(schedule.dutyDate))
     .sort(compareDutyTime)
-    .slice(0, 5);
+    .slice(0, 4);
   const pendingRows = pendingApproval
     .sort((left, right) => right.requestedAt.localeCompare(left.requestedAt))
-    .slice(0, 6);
+    .slice(0, 4);
 
   const stats: StatCardProps[] = [
     {
@@ -131,7 +134,7 @@ export function HeadDashboard({ userName }: HeadDashboardProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
@@ -159,13 +162,13 @@ export function HeadDashboard({ userName }: HeadDashboardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {stats.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.9fr] gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.9fr] gap-3">
         <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h3 className="font-medium text-gray-800">Yêu cầu đổi ca chờ xử lý</h3>
@@ -219,6 +222,15 @@ export function HeadDashboard({ userName }: HeadDashboardProps) {
               </tbody>
             </table>
           </div>
+          <div className="border-t border-gray-100 px-5 py-3 text-right">
+            <button
+              type="button"
+              onClick={() => onNavigate("exchange_requests")}
+              className="inline-flex items-center gap-0.5 text-xs text-teal-600 hover:text-teal-800"
+            >
+              Xem thêm <ChevronRight size={14} />
+            </button>
+          </div>
         </section>
 
         <section className="bg-white rounded-xl border border-gray-200">
@@ -246,6 +258,15 @@ export function HeadDashboard({ userName }: HeadDashboardProps) {
             {!loading && upcomingSchedules.length === 0 && (
               <PanelMessage text="Tuần này chưa có ca trực sắp tới." />
             )}
+          </div>
+          <div className="border-t border-gray-100 px-5 py-3 text-right">
+            <button
+              type="button"
+              onClick={() => onNavigate("personal_schedule")}
+              className="inline-flex items-center gap-0.5 text-xs text-teal-600 hover:text-teal-800"
+            >
+              Xem thêm <ChevronRight size={14} />
+            </button>
           </div>
         </section>
       </div>

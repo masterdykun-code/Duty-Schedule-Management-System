@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   Filter,
   RefreshCw,
   Search,
@@ -18,8 +16,9 @@ import {
   getActivityActor,
   getActivityRoleLabel,
 } from "./activityLogUtils";
+import { DEFAULT_LIST_PAGE_SIZE, ListPagination } from "../shared/ListPagination";
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = DEFAULT_LIST_PAGE_SIZE;
 
 export function ActivityLogs() {
   const [logs, setLogs] = useState<ActivityLogRecord[]>([]);
@@ -198,33 +197,17 @@ export function ActivityLogs() {
             )}
           </tbody>
         </table>
-
-        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-          <span className="text-sm text-gray-500">
-            Hiển thị {visibleStart}-{visibleEnd} / {total} hoạt động
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page <= 1}
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ChevronLeft size={15} />
-              Trước
-            </button>
-            <span className="text-sm text-gray-600">Trang {page} / {totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              disabled={page >= totalPages}
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Sau
-              <ChevronRight size={15} />
-            </button>
-          </div>
-        </div>
+        {!loading && (
+          <ListPagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={total}
+            pageStart={visibleStart}
+            pageEnd={visibleEnd}
+            itemLabel="hoạt động"
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </div>
   );

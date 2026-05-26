@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeftRight,
   Check,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   X,
   XCircle,
@@ -15,6 +13,7 @@ import {
 } from "../../lib/scheduleApi";
 import type { SwapRequestRecord, SwapRequestSchedule } from "../../lib/scheduleApi";
 import { StatusBadge, type BadgeStatus } from "../StatusBadge";
+import { DEFAULT_LIST_PAGE_SIZE, ListPagination } from "./ListPagination";
 
 type RequestFilter =
   | "all"
@@ -37,7 +36,7 @@ const filterOptions: { value: RequestFilter; label: string }[] = [
   { value: "EXPIRED", label: "Hết hạn" },
 ];
 
-const REQUESTS_PER_PAGE = 9;
+const REQUESTS_PER_PAGE = DEFAULT_LIST_PAGE_SIZE;
 
 function toBadgeStatus(status: string): BadgeStatus {
   if (status === "PENDING_RESPONSE") return "waiting_response";
@@ -79,22 +78,6 @@ function getActionText(request: SwapRequestRecord) {
     positive: request.canApprove ? "Duyệt" : "Đồng ý",
     note: request.canApprove ? "Ghi chú xử lý" : "Ghi chú phản hồi",
   };
-}
-
-function getVisiblePageItems(currentPage: number, totalPages: number) {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, "ellipsis-end", totalPages] as const;
-  }
-
-  if (currentPage >= totalPages - 3) {
-    return [1, "ellipsis-start", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages] as const;
-  }
-
-  return [1, "ellipsis-start", currentPage - 1, currentPage, currentPage + 1, "ellipsis-end", totalPages] as const;
 }
 
 export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
@@ -144,7 +127,6 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
   const pageStartIndex = (currentPage - 1) * REQUESTS_PER_PAGE;
   const pageEndIndex = Math.min(pageStartIndex + REQUESTS_PER_PAGE, filteredRequests.length);
   const paginatedRequests = filteredRequests.slice(pageStartIndex, pageEndIndex);
-  const visiblePageItems = getVisiblePageItems(currentPage, totalPages);
   const selected = requests.find((request) => request.requestId === selectedId) || null;
   const selectedActionText = selected ? getActionText(selected) : null;
 
@@ -161,10 +143,6 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
   function handleFilterChange(status: RequestFilter) {
     setFilterStatus(status);
     setCurrentPage(1);
-  }
-
-  function goToPage(page: number) {
-    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
   }
 
   async function handleAction(positive: boolean) {
@@ -302,54 +280,15 @@ export function ExchangeRequests({ mode }: ExchangeRequestsProps) {
           </div>
 
           {!loading && filteredRequests.length > 0 && (
-            <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
-              <div className="text-xs text-gray-500">
-                Hiển thị {pageStartIndex + 1}-{pageEndIndex} / {filteredRequests.length} yêu cầu
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Trang trước"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-
-                {visiblePageItems.map((item) => (
-                  typeof item === "number" ? (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => goToPage(item)}
-                      className={`h-8 min-w-8 rounded-md px-2 text-xs font-semibold transition-colors ${
-                        currentPage === item
-                          ? "bg-teal-700 text-white"
-                          : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  ) : (
-                    <span key={item} className="px-1 text-xs font-semibold text-gray-400">
-                      ...
-                    </span>
-                  )
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Trang sau"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
+            <ListPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredRequests.length}
+              pageStart={pageStartIndex + 1}
+              pageEnd={pageEndIndex}
+              itemLabel="yêu cầu"
+              onPageChange={setCurrentPage}
+            />
           )}
         </div>
 

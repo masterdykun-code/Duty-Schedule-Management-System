@@ -14,6 +14,7 @@ import {
   type StaffPayload,
   type StaffRecord,
 } from "../../lib/adminApi";
+import { DEFAULT_LIST_PAGE_SIZE, ListPagination } from "../shared/ListPagination";
 
 type StaffStatus = "active" | "inactive";
 
@@ -43,7 +44,7 @@ const emptyForm: StaffFormData = {
   status: "active",
 };
 
-const STAFF_PER_PAGE = 9;
+const STAFF_PER_PAGE = DEFAULT_LIST_PAGE_SIZE;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^\d{10}$/;
 
@@ -305,28 +306,17 @@ export function StaffManagement() {
           </tbody>
         </table>
         </div>
-        <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3 text-xs text-gray-500 shrink-0">
-          <span>Hiển thị {visibleStart}-{visibleEnd} / {filtered.length} nhân viên</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              disabled={currentPage === 1}
-              className="px-2.5 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Trước
-            </button>
-            <span>Trang {currentPage} / {totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-              disabled={currentPage === totalPages}
-              className="px-2.5 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Sau
-            </button>
-          </div>
-        </div>
+        {!loading && (
+          <ListPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageStart={visibleStart}
+            pageEnd={visibleEnd}
+            itemLabel="nhân viên"
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {viewStaff && (

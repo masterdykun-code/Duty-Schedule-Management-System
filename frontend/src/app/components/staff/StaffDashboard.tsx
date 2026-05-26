@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   Calendar,
   CheckCircle,
+  ChevronRight,
   Clock,
   RefreshCw,
 } from "lucide-react";
@@ -29,9 +30,11 @@ import {
   isToday,
   isUpcomingOrToday,
 } from "../shared/dashboardUtils";
+import type { Page } from "../../routes";
 
 interface StaffDashboardProps {
   userName: string;
+  onNavigate: (page: Page) => void;
 }
 
 interface StatCardProps {
@@ -53,7 +56,7 @@ function requestPartner(request: SwapRequestRecord, userName: string) {
     : request.requester.fullName;
 }
 
-export function StaffDashboard({ userName }: StaffDashboardProps) {
+export function StaffDashboard({ userName, onNavigate }: StaffDashboardProps) {
   const weekStart = useMemo(() => getCurrentWeekStart(), []);
   const [schedules, setSchedules] = useState<MyScheduleItem[]>([]);
   const [requests, setRequests] = useState<SwapRequestRecord[]>([]);
@@ -93,10 +96,10 @@ export function StaffDashboard({ userName }: StaffDashboardProps) {
   const upcomingSchedules = schedules
     .filter((schedule) => isUpcomingOrToday(schedule.dutyDate))
     .sort(compareDutyTime)
-    .slice(0, 5);
+    .slice(0, 4);
   const recentRequests = [...requests]
     .sort((left, right) => right.requestedAt.localeCompare(left.requestedAt))
-    .slice(0, 5);
+    .slice(0, 4);
   const pendingRequestCount = requests.filter((request) =>
     ["PENDING_RESPONSE", "PENDING_APPROVAL"].includes(request.status),
   ).length;
@@ -141,7 +144,7 @@ export function StaffDashboard({ userName }: StaffDashboardProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
@@ -166,13 +169,13 @@ export function StaffDashboard({ userName }: StaffDashboardProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {stats.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <section className="bg-white rounded-xl border border-gray-200">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h3 className="font-medium text-gray-800">Lịch trực sắp tới</h3>
@@ -211,6 +214,15 @@ export function StaffDashboard({ userName }: StaffDashboardProps) {
               <PanelMessage text="Tuần này chưa có lịch trực sắp tới." />
             )}
           </div>
+          <div className="border-t border-gray-100 px-5 py-3 text-right">
+            <button
+              type="button"
+              onClick={() => onNavigate("personal_schedule")}
+              className="inline-flex items-center gap-0.5 text-xs text-teal-600 hover:text-teal-800"
+            >
+              Xem thêm <ChevronRight size={14} />
+            </button>
+          </div>
         </section>
 
         <section className="bg-white rounded-xl border border-gray-200">
@@ -244,6 +256,15 @@ export function StaffDashboard({ userName }: StaffDashboardProps) {
             {!loading && recentRequests.length === 0 && (
               <PanelMessage text="Chưa có yêu cầu đổi ca nào." />
             )}
+          </div>
+          <div className="border-t border-gray-100 px-5 py-3 text-right">
+            <button
+              type="button"
+              onClick={() => onNavigate("exchange_requests")}
+              className="inline-flex items-center gap-0.5 text-xs text-teal-600 hover:text-teal-800"
+            >
+              Xem thêm <ChevronRight size={14} />
+            </button>
           </div>
         </section>
       </div>
