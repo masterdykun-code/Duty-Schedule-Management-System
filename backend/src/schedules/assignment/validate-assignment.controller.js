@@ -8,7 +8,7 @@ export async function validateAssignmentSchedule(req, res) {
 
     if (!weekStart) {
       return res.status(400).json({
-        message: "week_start phai co dinh dang YYYY-MM-DD",
+        message: "week_start phải có định dạng YYYY-MM-DD",
       });
     }
 
@@ -20,12 +20,12 @@ export async function validateAssignmentSchedule(req, res) {
       missing,
       message:
         missing.length === 0
-          ? "Lich truc da duoc phan cong day du"
-          : "Vui long phan cong day du cac ca truc bat buoc",
+          ? "Lịch trực đã được phân công đầy đủ"
+          : "Vui lòng phân công đầy đủ các ca trực bắt buộc",
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi kiem tra lich truc",
+      message: "Lỗi khi kiểm tra lịch trực",
       error: error.message,
     });
   }

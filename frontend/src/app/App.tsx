@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { Login } from "./components/Login";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
@@ -13,32 +14,21 @@ import { PersonalSchedule } from "./components/staff/PersonalSchedule";
 import { ExchangeRequests } from "./components/shared/ExchangeRequests";
 import { HeadDashboard } from "./components/head/HeadDashboard";
 import { OfficeDashboard } from "./components/office/OfficeDashboard";
-import type { Role } from "./components/Header";
-import type { Page } from "./components/Sidebar";
 import {
   AUTH_SESSION_KEY,
   getCurrentUser,
   type AuthSession,
   type AuthUser,
 } from "./lib/auth";
-
-const pagesByRole: Record<Role, Page[]> = {
-  admin: [
-    "dashboard",
-    "staff_management",
-    "shift_management",
-    "shift_assignment",
-    "general_schedule",
-    "activity_logs",
-  ],
-  staff: ["dashboard", "personal_schedule", "general_schedule", "exchange_requests"],
-  head: ["dashboard", "personal_schedule", "general_schedule", "exchange_requests"],
-  office: ["dashboard", "general_schedule"],
-};
-
-function canOpenPage(role: Role, page: Page) {
-  return pagesByRole[role].includes(page);
-}
+import {
+  appPages,
+  canOpenPage,
+  getDefaultPage,
+  getPageFromPath,
+  getPagePath,
+  shouldLockPageScroll,
+  type Page,
+} from "./routes";
 
 function readStoredSession(): AuthSession | null {
   try {
@@ -64,11 +54,20 @@ function clearSession() {
 }
 
 export default function App() {
-  const initialSession = readStoredSession();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [initialSession] = useState(() => readStoredSession());
   const [token, setToken] = useState<string | null>(initialSession?.token ?? null);
   const [user, setUser] = useState<AuthUser | null>(initialSession?.user ?? null);
   const [checkingSession, setCheckingSession] = useState(Boolean(initialSession?.token));
-  const [currentPage, setCurrentPage] = useState<Page>("dashboard");
+
+  const requestedPage = getPageFromPath(location.pathname);
+  const activePage =
+    user && requestedPage && canOpenPage(user.role, requestedPage)
+      ? requestedPage
+      : user
+        ? getDefaultPage(user.role)
+        : null;
 
   useEffect(() => {
     if (!token) {
@@ -99,23 +98,48 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (user && !canOpenPage(user.role, currentPage)) {
-      setCurrentPage("dashboard");
+    if (checkingSession) return;
+
+    if (!user) {
+      if (location.pathname !== "/login") {
+        navigate("/login", {
+          replace: true,
+          state: { from: location.pathname },
+        });
+      }
+      return;
     }
-  }, [currentPage, user]);
+
+    if (location.pathname === "/" || location.pathname === "/login") {
+      navigate(getPagePath(getDefaultPage(user.role)), { replace: true });
+      return;
+    }
+
+    if (!requestedPage || !canOpenPage(user.role, requestedPage)) {
+      navigate(getPagePath(getDefaultPage(user.role)), { replace: true });
+    }
+  }, [checkingSession, location.pathname, navigate, requestedPage, user]);
 
   function handleLogin(session: AuthSession) {
     setToken(session.token);
     setUser(session.user);
     saveSession(session);
-    setCurrentPage("dashboard");
+
+    const fromPath = (location.state as { from?: string } | null)?.from;
+    const fromPage = fromPath ? getPageFromPath(fromPath) : null;
+    const nextPage =
+      fromPage && canOpenPage(session.user.role, fromPage)
+        ? fromPage
+        : getDefaultPage(session.user.role);
+
+    navigate(getPagePath(nextPage), { replace: true });
   }
 
   function handleLogout() {
     setToken(null);
     setUser(null);
     clearSession();
-    setCurrentPage("dashboard");
+    navigate("/login", { replace: true });
   }
 
   function handleUserUpdated(updatedUser: AuthUser) {
@@ -126,8 +150,8 @@ export default function App() {
   }
 
   function handleNavigate(page: Page) {
-    if (!user || canOpenPage(user.role, page)) {
-      setCurrentPage(page);
+    if (user && canOpenPage(user.role, page)) {
+      navigate(getPagePath(page));
     }
   }
 
@@ -143,17 +167,14 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const lockPageScroll =
-    currentPage === "staff_management" ||
-    currentPage === "general_schedule" ||
-    currentPage === "shift_assignment";
+  const lockPageScroll = shouldLockPageScroll(activePage);
 
-  function renderContent() {
+  function renderContent(page: Page) {
     if (!user) return null;
 
     const role = user.role;
 
-    if (!canOpenPage(role, currentPage)) {
+    if (!canOpenPage(role, page)) {
       return (
         <div className="flex items-center justify-center h-64 text-gray-400">
           Bạn không có quyền truy cập chức năng này.
@@ -161,22 +182,22 @@ export default function App() {
       );
     }
 
-    if (currentPage === "dashboard") {
-      if (role === "admin") return <AdminDashboard onOpenActivityLogs={() => setCurrentPage("activity_logs")} />;
+    if (page === "dashboard") {
+      if (role === "admin") return <AdminDashboard onOpenActivityLogs={() => handleNavigate("activity_logs")} />;
       if (role === "staff") return <StaffDashboard userName={user.name} />;
       if (role === "head") return <HeadDashboard userName={user.name} />;
       if (role === "office") return <OfficeDashboard />;
     }
 
-    if (currentPage === "staff_management" && role === "admin") return <StaffManagement />;
-    if (currentPage === "shift_management" && role === "admin") return <ShiftManagement />;
-    if (currentPage === "shift_assignment" && role === "admin") return <ShiftAssignment />;
-    if (currentPage === "activity_logs" && role === "admin") return <ActivityLogs />;
-    if (currentPage === "general_schedule") return <GeneralSchedule readOnly={role !== "admin"} />;
-    if (currentPage === "personal_schedule" && (role === "staff" || role === "head")) {
+    if (page === "staff_management" && role === "admin") return <StaffManagement />;
+    if (page === "shift_management" && role === "admin") return <ShiftManagement />;
+    if (page === "shift_assignment" && role === "admin") return <ShiftAssignment />;
+    if (page === "activity_logs" && role === "admin") return <ActivityLogs />;
+    if (page === "general_schedule") return <GeneralSchedule readOnly={role !== "admin"} />;
+    if (page === "personal_schedule" && (role === "staff" || role === "head")) {
       return <PersonalSchedule user={user} />;
     }
-    if (currentPage === "exchange_requests" && (role === "staff" || role === "head")) {
+    if (page === "exchange_requests" && (role === "staff" || role === "head")) {
       return <ExchangeRequests mode={role === "head" ? "head" : "staff"} />;
     }
 
@@ -191,8 +212,7 @@ export default function App() {
     <div className="min-h-screen bg-[#F8FAFC]">
       <Sidebar
         role={user.role}
-        currentPage={currentPage}
-        onNavigate={handleNavigate}
+        currentPage={activePage ?? getDefaultPage(user.role)}
         onLogout={handleLogout}
       />
       <Header
@@ -203,7 +223,27 @@ export default function App() {
       />
       <main className={`ml-64 pt-16 ${lockPageScroll ? "h-screen overflow-hidden" : "min-h-screen"}`}>
         <div className={`p-6 ${lockPageScroll ? "h-full overflow-hidden" : ""}`}>
-          {renderContent()}
+          <Routes>
+            <Route
+              path="/"
+              element={<Navigate to={getPagePath(getDefaultPage(user.role))} replace />}
+            />
+            <Route
+              path="/login"
+              element={<Navigate to={getPagePath(getDefaultPage(user.role))} replace />}
+            />
+            {appPages.map((page) => (
+              <Route
+                key={page}
+                path={getPagePath(page)}
+                element={renderContent(page)}
+              />
+            ))}
+            <Route
+              path="*"
+              element={<Navigate to={getPagePath(getDefaultPage(user.role))} replace />}
+            />
+          </Routes>
         </div>
       </main>
     </div>

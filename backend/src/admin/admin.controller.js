@@ -71,7 +71,7 @@ async function syncShiftDepartments(client, shiftId, departmentConfigs, status) 
   );
 
   if (result.rowCount !== departmentConfigs.length) {
-    const error = new Error("Khoa ap dung khong hop le hoac da ngung hoat dong");
+    const error = new Error("Khoa áp dụng không hợp lệ hoặc đã ngừng hoạt động");
     error.statusCode = 400;
     throw error;
   }
@@ -91,7 +91,7 @@ export async function listDepartments(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach khoa",
+      message: "Lỗi khi lấy danh sách khoa",
       error: error.message,
     });
   }
@@ -111,7 +111,7 @@ export async function listRooms(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach phong",
+      message: "Lỗi khi lấy danh sách phòng",
       error: error.message,
     });
   }
@@ -127,7 +127,7 @@ export async function listEmployees(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach nhan vien",
+      message: "Lỗi khi lấy danh sách nhân viên",
       error: error.message,
     });
   }
@@ -156,19 +156,19 @@ export async function createEmployee(req, res) {
 
     if (!full_name || !departmentId || !position) {
       return res.status(400).json({
-        message: "full_name, department_id va position la bat buoc",
+        message: "Vui lòng nhập họ tên, khoa và chức vụ",
       });
     }
 
     if (!isValidEmail(normalizedEmail)) {
       return res.status(400).json({
-        message: "Email khong dung dinh dang",
+        message: "Email không đúng định dạng",
       });
     }
 
     if (!isValidPhone(normalizedPhone)) {
       return res.status(400).json({
-        message: "So dien thoai phai gom dung 10 chu so",
+        message: "Số điện thoại phải gồm đúng 10 chữ số",
       });
     }
 
@@ -185,7 +185,7 @@ export async function createEmployee(req, res) {
       if (roomResult.rowCount === 0) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: "Phong khong thuoc khoa da chon",
+          message: "Phòng không thuộc khoa đã chọn",
         });
       }
     }
@@ -230,7 +230,7 @@ export async function createEmployee(req, res) {
       action: "CREATE_EMPLOYEE",
       entityType: "employees",
       entityId: employee.employee_id,
-      description: `Them nhan vien ${employee.employee_code} - ${employee.full_name}`,
+      description: `Thêm nhân viên ${employee.employee_code} - ${employee.full_name}`,
       metadata: {
         employee_code: employee.employee_code,
         department_id: employee.department_id,
@@ -243,7 +243,7 @@ export async function createEmployee(req, res) {
     await client.query("COMMIT");
 
     res.status(201).json({
-      message: "Tao nhan vien thanh cong",
+      message: "Tạo nhân viên thành công",
       data: employee,
       login: {
         username: employee.employee_code,
@@ -253,7 +253,7 @@ export async function createEmployee(req, res) {
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({
-      message: "Loi khi tao nhan vien",
+      message: "Lỗi khi tạo nhân viên",
       error: error.message,
     });
   } finally {
@@ -284,24 +284,24 @@ export async function updateEmployee(req, res) {
     const normalizedEmail = emptyToNull(email?.trim());
 
     if (!employeeId) {
-      return res.status(400).json({ message: "employee_id khong hop le" });
+      return res.status(400).json({ message: "Mã nhân viên không hợp lệ" });
     }
 
     if (!full_name || !departmentId || !position) {
       return res.status(400).json({
-        message: "full_name, department_id va position la bat buoc",
+        message: "Vui lòng nhập họ tên, khoa và chức vụ",
       });
     }
 
     if (!isValidEmail(normalizedEmail)) {
       return res.status(400).json({
-        message: "Email khong dung dinh dang",
+        message: "Email không đúng định dạng",
       });
     }
 
     if (!isValidPhone(normalizedPhone)) {
       return res.status(400).json({
-        message: "So dien thoai phai gom dung 10 chu so",
+        message: "Số điện thoại phải gồm đúng 10 chữ số",
       });
     }
 
@@ -316,7 +316,7 @@ export async function updateEmployee(req, res) {
       if (roomResult.rowCount === 0) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: "Phong khong thuoc khoa da chon",
+          message: "Phòng không thuộc khoa đã chọn",
         });
       }
     }
@@ -355,7 +355,7 @@ export async function updateEmployee(req, res) {
 
     if (result.rowCount === 0) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Khong tim thay nhan vien" });
+      return res.status(404).json({ message: "Không tìm thấy nhân viên" });
     }
 
     const userId = result.rows[0].user_id;
@@ -373,7 +373,7 @@ export async function updateEmployee(req, res) {
       action: "UPDATE_EMPLOYEE",
       entityType: "employees",
       entityId: employee.employee_id,
-      description: `Cap nhat nhan vien ${employee.employee_code} - ${employee.full_name}`,
+      description: `Cập nhật nhân viên ${employee.employee_code} - ${employee.full_name}`,
       metadata: {
         employee_code: employee.employee_code,
         department_id: employee.department_id,
@@ -386,13 +386,13 @@ export async function updateEmployee(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: "Cap nhat nhan vien thanh cong",
+      message: "Cập nhật nhân viên thành công",
       data: employee,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({
-      message: "Loi khi cap nhat nhan vien",
+      message: "Lỗi khi cập nhật nhân viên",
       error: error.message,
     });
   } finally {
@@ -407,7 +407,7 @@ export async function deactivateEmployee(req, res) {
     const employeeId = parsePositiveId(req.params.id);
 
     if (!employeeId) {
-      return res.status(400).json({ message: "employee_id khong hop le" });
+      return res.status(400).json({ message: "Mã nhân viên không hợp lệ" });
     }
 
     await client.query("BEGIN");
@@ -424,7 +424,7 @@ export async function deactivateEmployee(req, res) {
 
     if (result.rowCount === 0) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Khong tim thay nhan vien" });
+      return res.status(404).json({ message: "Không tìm thấy nhân viên" });
     }
 
     const userId = result.rows[0].user_id;
@@ -442,7 +442,7 @@ export async function deactivateEmployee(req, res) {
       action: "DEACTIVATE_EMPLOYEE",
       entityType: "employees",
       entityId: employee.employee_id,
-      description: `Ngung hoat dong nhan vien ${employee.employee_code} - ${employee.full_name}`,
+      description: `Ngừng hoạt động nhân viên ${employee.employee_code} - ${employee.full_name}`,
       metadata: {
         employee_code: employee.employee_code,
         department_id: employee.department_id,
@@ -455,13 +455,13 @@ export async function deactivateEmployee(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: "Da ngung hoat dong nhan vien",
+      message: "Đã ngừng hoạt động nhân viên",
       data: employee,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({
-      message: "Loi khi ngung hoat dong nhan vien",
+      message: "Lỗi khi ngừng hoạt động nhân viên",
       error: error.message,
     });
   } finally {
@@ -479,7 +479,7 @@ export async function listShifts(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach ca truc",
+      message: "Lỗi khi lấy danh sách ca trực",
       error: error.message,
     });
   }
@@ -496,13 +496,13 @@ export async function createShift(req, res) {
 
     if (!shift_name || !start_time || !end_time || !normalizedShiftType) {
       return res.status(400).json({
-        message: "shift_name, start_time, end_time va shift_type hop le la bat buoc",
+        message: "Vui lòng nhập tên ca, giờ bắt đầu, giờ kết thúc và loại ca hợp lệ",
       });
     }
 
     if (!departmentConfigs || departmentConfigs.length === 0) {
       return res.status(400).json({
-        message: "Vui long cau hinh khoa ap dung ca truc hop le",
+        message: "Vui lòng cấu hình khoa áp dụng ca trực hợp lệ",
       });
     }
 
@@ -540,7 +540,7 @@ export async function createShift(req, res) {
       action: "CREATE_SHIFT",
       entityType: "shifts",
       entityId: shift.shift_id,
-      description: `Them ca truc ${shift.shift_code} - ${shift.shift_name}`,
+      description: `Thêm ca trực ${shift.shift_code} - ${shift.shift_name}`,
       metadata: {
         shift_code: shift.shift_code,
         shift_type: shift.shift_type,
@@ -554,14 +554,14 @@ export async function createShift(req, res) {
     await client.query("COMMIT");
 
     res.status(201).json({
-      message: "Tao ca truc thanh cong",
+      message: "Tạo ca trực thành công",
       data: shift,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     const statusCode = error.statusCode || 500;
     res.status(statusCode).json({
-      message: statusCode === 400 ? error.message : "Loi khi tao ca truc",
+      message: statusCode === 400 ? error.message : "Lỗi khi tạo ca trực",
       error: error.message,
     });
   } finally {
@@ -580,18 +580,18 @@ export async function updateShift(req, res) {
     const departmentConfigs = normalizeShiftDepartmentConfigs(departments);
 
     if (!shiftId) {
-      return res.status(400).json({ message: "shift_id khong hop le" });
+      return res.status(400).json({ message: "Mã ca trực không hợp lệ" });
     }
 
     if (!shift_name || !start_time || !end_time || !normalizedShiftType) {
       return res.status(400).json({
-        message: "shift_name, start_time, end_time va shift_type hop le la bat buoc",
+        message: "Vui lòng nhập tên ca, giờ bắt đầu, giờ kết thúc và loại ca hợp lệ",
       });
     }
 
     if (!departmentConfigs || departmentConfigs.length === 0) {
       return res.status(400).json({
-        message: "Vui long cau hinh khoa ap dung ca truc hop le",
+        message: "Vui lòng cấu hình khoa áp dụng ca trực hợp lệ",
       });
     }
 
@@ -624,7 +624,7 @@ export async function updateShift(req, res) {
 
     if (result.rowCount === 0) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Khong tim thay ca truc" });
+      return res.status(404).json({ message: "Không tìm thấy ca trực" });
     }
 
     await syncShiftDepartments(client, shiftId, departmentConfigs, normalizedStatus);
@@ -636,7 +636,7 @@ export async function updateShift(req, res) {
       action: "UPDATE_SHIFT",
       entityType: "shifts",
       entityId: shift.shift_id,
-      description: `Cap nhat ca truc ${shift.shift_code} - ${shift.shift_name}`,
+      description: `Cập nhật ca trực ${shift.shift_code} - ${shift.shift_name}`,
       metadata: {
         shift_code: shift.shift_code,
         shift_type: shift.shift_type,
@@ -650,14 +650,14 @@ export async function updateShift(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: "Cap nhat ca truc thanh cong",
+      message: "Cập nhật ca trực thành công",
       data: shift,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     const statusCode = error.statusCode || 500;
     res.status(statusCode).json({
-      message: statusCode === 400 ? error.message : "Loi khi cap nhat ca truc",
+      message: statusCode === 400 ? error.message : "Lỗi khi cập nhật ca trực",
       error: error.message,
     });
   } finally {
@@ -672,7 +672,7 @@ export async function deactivateShift(req, res) {
     const shiftId = parsePositiveId(req.params.id);
 
     if (!shiftId) {
-      return res.status(400).json({ message: "shift_id khong hop le" });
+      return res.status(400).json({ message: "Mã ca trực không hợp lệ" });
     }
 
     await client.query("BEGIN");
@@ -689,7 +689,7 @@ export async function deactivateShift(req, res) {
 
     if (result.rowCount === 0) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Khong tim thay ca truc" });
+      return res.status(404).json({ message: "Không tìm thấy ca trực" });
     }
 
     await client.query(
@@ -708,7 +708,7 @@ export async function deactivateShift(req, res) {
       action: "DEACTIVATE_SHIFT",
       entityType: "shifts",
       entityId: shift.shift_id,
-      description: `Ngung ap dung ca truc ${shift.shift_code} - ${shift.shift_name}`,
+      description: `Ngừng áp dụng ca trực ${shift.shift_code} - ${shift.shift_name}`,
       metadata: {
         shift_code: shift.shift_code,
         shift_type: shift.shift_type,
@@ -721,13 +721,13 @@ export async function deactivateShift(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: "Da ngung ap dung ca truc",
+      message: "Đã ngừng áp dụng ca trực",
       data: shift,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({
-      message: "Loi khi ngung ap dung ca truc",
+      message: "Lỗi khi ngừng áp dụng ca trực",
       error: error.message,
     });
   } finally {

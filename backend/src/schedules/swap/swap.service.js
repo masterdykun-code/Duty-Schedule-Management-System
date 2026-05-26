@@ -148,14 +148,14 @@ export async function getSwapCandidates(client, {
   shiftId,
 }) {
   if (!isValidIsoDate(dutyDate) || !roomId || !shiftId) {
-    return { error: "Vui long chon ngay, phong va ca muon doi" };
+    return { error: "Vui lòng chọn ngày, phòng và ca muốn đổi" };
   }
 
   await expireOverdueSwapRequests(client);
 
   const source = await getOwnedSchedule(client, userId, sourceScheduleId);
   if (!source) {
-    return { error: "Khong tim thay ca truc nguon" };
+    return { error: "Không tìm thấy ca trực nguon" };
   }
 
   const deadlineResult = await canRequestBeforeDutyDate(client, source.schedule_id);
@@ -232,7 +232,7 @@ export async function getSwapCandidates(client, {
 export async function validateSwapPair(client, { userId, sourceScheduleId, targetScheduleId }) {
   const source = await getOwnedSchedule(client, userId, sourceScheduleId);
   if (!source) {
-    return { valid: false, message: "Khong tim thay ca truc nguon" };
+    return { valid: false, message: "Không tìm thấy ca trực nguon" };
   }
 
   const targetResult = await client.query(
@@ -258,19 +258,19 @@ export async function validateSwapPair(client, { userId, sourceScheduleId, targe
   const target = targetResult.rows[0];
 
   if (!target) {
-    return { valid: false, message: "Khong tim thay ca truc muon doi" };
+    return { valid: false, message: "Không tìm thấy ca trực muon doi" };
   }
 
   if (Number(source.schedule_id) === Number(target.schedule_id)) {
-    return { valid: false, message: "Khong the doi voi chinh ca truc nay" };
+    return { valid: false, message: "Không thể đổi với chính ca trực này" };
   }
 
   if (Number(source.employee_id) === Number(target.employee_id)) {
-    return { valid: false, message: "Khong the gui yeu cau doi ca cho chinh minh" };
+    return { valid: false, message: "Không thể gửi yêu cầu đổi ca cho chính mình" };
   }
 
   if (Number(source.department_id) !== Number(target.department_id)) {
-    return { valid: false, message: "Chi co the doi ca voi nhan vien cung khoa" };
+    return { valid: false, message: "Chỉ có thể đổi ca với nhân viên cùng khoa" };
   }
 
   const pendingResult = await client.query(
@@ -288,7 +288,7 @@ export async function validateSwapPair(client, { userId, sourceScheduleId, targe
   );
 
   if (pendingResult.rowCount > 0) {
-    return { valid: false, message: "Ca truc nay dang co yeu cau doi ca cho xu ly" };
+    return { valid: false, message: "Ca trực này đang có yêu cầu đổi ca chờ xử lý" };
   }
 
   const requesterConflict = await hasScheduleConflict(client, {
@@ -299,7 +299,7 @@ export async function validateSwapPair(client, { userId, sourceScheduleId, targe
   });
 
   if (requesterConflict) {
-    return { valid: false, message: "Ban da co lich truc trung voi ca muon doi" };
+    return { valid: false, message: "Bạn đã có lịch trực trùng với ca muốn đổi" };
   }
 
   const targetConflict = await hasScheduleConflict(client, {
@@ -310,7 +310,7 @@ export async function validateSwapPair(client, { userId, sourceScheduleId, targe
   });
 
   if (targetConflict) {
-    return { valid: false, message: "Nhan vien duoc chon se bi trung ca neu doi" };
+    return { valid: false, message: "Nhân viên được chọn sẽ bị trùng ca nếu đổi" };
   }
 
   return { valid: true, source, target };
@@ -326,7 +326,7 @@ export async function createSwapRequest(client, {
 
   const cleanReason = typeof reason === "string" ? reason.trim() : "";
   if (!cleanReason) {
-    return { error: "Vui long nhap ly do doi ca" };
+    return { error: "Vui lòng nhập lý do đổi ca" };
   }
 
   const validation = await validateSwapPair(client, {
@@ -378,7 +378,7 @@ export async function createSwapRequest(client, {
 export async function listSwapRequests(client, user) {
   const profile = await getEmployeeProfileByUser(client, user.sub);
   if (!profile) {
-    return { error: "Tai khoan nay chua lien ket voi nhan vien y te" };
+    return { error: "Tài khoản này chưa liên kết với nhân viên y tế" };
   }
 
   const expiredCount = await expireOverdueSwapRequests(client);
@@ -477,26 +477,26 @@ export async function respondToSwapRequest(client, {
 }) {
   const profile = await getEmployeeProfileByUser(client, user.sub);
   if (!profile) {
-    return { error: "Tai khoan nay chua lien ket voi nhan vien y te" };
+    return { error: "Tài khoản này chưa liên kết với nhân viên y tế" };
   }
 
   await expireOverdueSwapRequests(client);
 
   const request = await getSwapRequestForUpdate(client, requestId);
   if (!request) {
-    return { error: "Khong tim thay yeu cau doi ca" };
+    return { error: "Không tìm thấy yêu cầu đổi ca" };
   }
 
   if (request.status === "EXPIRED") {
-    return { error: "Yeu cau doi ca da het han" };
+    return { error: "Yêu cầu đổi ca đã hết hạn" };
   }
 
   if (request.status !== responsePendingStatus) {
-    return { error: "Yeu cau nay khong con cho phan hoi" };
+    return { error: "Yêu cầu này không còn chờ phản hồi" };
   }
 
   if (Number(request.target_employee_id) !== Number(profile.employee_id)) {
-    return { error: "Ban khong phai nguoi duoc yeu cau doi ca" };
+    return { error: "Bạn không phải người được yêu cầu đổi ca" };
   }
 
   const cleanNote = typeof note === "string" && note.trim() ? note.trim() : null;
@@ -572,26 +572,26 @@ export async function reviewSwapRequest(client, {
 }) {
   const profile = await getEmployeeProfileByUser(client, userId);
   if (!profile) {
-    return { error: "Tai khoan nay chua lien ket voi nhan vien y te" };
+    return { error: "Tài khoản này chưa liên kết với nhân viên y tế" };
   }
 
   await expireOverdueSwapRequests(client);
 
   const request = await getSwapRequestForUpdate(client, requestId);
   if (!request) {
-    return { error: "Khong tim thay yeu cau doi ca" };
+    return { error: "Không tìm thấy yêu cầu đổi ca" };
   }
 
   if (request.status === "EXPIRED") {
-    return { error: "Yeu cau doi ca da het han" };
+    return { error: "Yêu cầu đổi ca đã hết hạn" };
   }
 
   if (request.status !== approvalPendingStatus) {
-    return { error: "Yeu cau nay khong con cho truong khoa xu ly" };
+    return { error: "Yêu cầu này không còn chờ trưởng khoa xử lý" };
   }
 
   if (Number(request.source_department_id) !== Number(profile.department_id)) {
-    return { error: "Ban chi duoc xu ly yeu cau trong khoa cua minh" };
+    return { error: "Bạn chỉ được xử lý yêu cầu trong khoa của mình" };
   }
 
   const cleanNote = typeof note === "string" && note.trim() ? note.trim() : null;
@@ -697,7 +697,7 @@ async function canRequestBeforeDutyDate(client, sourceScheduleId) {
   if (!result.rows[0]?.allowed) {
     return {
       allowed: false,
-      message: "Yeu cau doi ca phai duoc gui truoc ngay truc it nhat 1 ngay",
+      message: "Yêu cầu đổi ca phải được gửi trước ngày trực ít nhất 1 ngày",
     };
   }
 
@@ -758,15 +758,15 @@ async function validateSwapPairBySchedules(client, { sourceScheduleId, targetSch
 
   const pair = result.rows[0];
   if (!pair) {
-    return { valid: false, message: "Khong tim thay ca truc can doi" };
+    return { valid: false, message: "Không tìm thấy ca trực can doi" };
   }
 
   if (Number(pair.source_employee_id) === Number(pair.target_employee_id)) {
-    return { valid: false, message: "Khong the doi ca voi chinh minh" };
+    return { valid: false, message: "Không thể đổi ca với chính mình" };
   }
 
   if (Number(pair.source_department_id) !== Number(pair.target_department_id)) {
-    return { valid: false, message: "Chi co the doi ca voi nhan vien cung khoa" };
+    return { valid: false, message: "Chỉ có thể đổi ca với nhân viên cùng khoa" };
   }
 
   const sameSlot =
@@ -774,7 +774,7 @@ async function validateSwapPairBySchedules(client, { sourceScheduleId, targetSch
     Number(pair.source_shift_id) === Number(pair.target_shift_id);
 
   if (sameSlot && Number(pair.source_room_id) === Number(pair.target_room_id)) {
-    return { valid: false, message: "Hai nhan vien da truc cung phong va cung ca" };
+    return { valid: false, message: "Hai nhân viên đã trực cùng phòng và cùng ca" };
   }
 
   const requesterConflict = await hasScheduleConflict(client, {
@@ -785,7 +785,7 @@ async function validateSwapPairBySchedules(client, { sourceScheduleId, targetSch
   });
 
   if (!sameSlot && requesterConflict) {
-    return { valid: false, message: "Nguoi gui da co lich truc trung voi ca muon doi" };
+    return { valid: false, message: "Người gửi đã có lịch trực trùng với ca muốn đổi" };
   }
 
   const targetConflict = await hasScheduleConflict(client, {
@@ -796,7 +796,7 @@ async function validateSwapPairBySchedules(client, { sourceScheduleId, targetSch
   });
 
   if (!sameSlot && targetConflict) {
-    return { valid: false, message: "Nguoi duoc yeu cau se bi trung ca neu doi" };
+    return { valid: false, message: "Người được yêu cầu sẽ bị trùng ca nếu đổi" };
   }
 
   return { valid: true, pair };

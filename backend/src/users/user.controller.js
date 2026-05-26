@@ -8,13 +8,13 @@ export async function createUser(req, res) {
 
     if (!username || (!password && !password_hash) || !role) {
       return res.status(400).json({
-        message: "username, password hoac password_hash, va role la bat buoc",
+        message: "Vui lòng nhập tên đăng nhập, mật khẩu và vai trò",
       });
     }
 
     if (!Object.values(roles).includes(role)) {
       return res.status(400).json({
-        message: "role khong hop le",
+        message: "Vai trò không hợp lệ",
       });
     }
 
@@ -35,7 +35,7 @@ export async function createUser(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi tao user",
+      message: "Lỗi khi tạo user",
       error: error.message,
     });
   }

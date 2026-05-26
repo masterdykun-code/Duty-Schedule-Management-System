@@ -717,7 +717,7 @@ function mapSwapRequestSchedule(item: ApiSwapRequestSchedule | null): SwapReques
 function mapSwapRequest(item: ApiSwapRequest): SwapRequestRecord {
   const sourceSchedule = mapSwapRequestSchedule(item.source_schedule);
   if (!sourceSchedule) {
-    throw new Error("Du lieu yeu cau doi ca khong hop le.");
+    throw new Error("Dữ liệu yêu cầu đổi ca không hợp lệ.");
   }
 
   return {

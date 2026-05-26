@@ -11,7 +11,7 @@ export async function resetAssignmentSchedule(req, res) {
 
     if (!weekStart) {
       return res.status(400).json({
-        message: "week_start phai co dinh dang YYYY-MM-DD",
+        message: "week_start phải có định dạng YYYY-MM-DD",
       });
     }
 
@@ -41,7 +41,7 @@ export async function resetAssignmentSchedule(req, res) {
       req,
       action: "RESET_ASSIGNMENT",
       entityType: "schedules",
-      description: `Reset phan cong tuan bat dau ${weekStart}`,
+      description: `Reset phân công tuần bắt đầu ${weekStart}`,
       metadata: {
         week_start: weekStart,
         updated_count: result.rowCount,
@@ -52,8 +52,8 @@ export async function resetAssignmentSchedule(req, res) {
       await createNotificationsForEmployeeIds(client, {
         employeeIds: affectedResult.rows.map((row) => Number(row.employee_id)),
         senderUserId: req.user.sub,
-        title: "Lich truc da duoc reset",
-        message: `Lich truc tuan bat dau ${weekStart} da duoc reset. Vui long kiem tra lai lich ca nhan.`,
+        title: "Lịch trực đã được reset",
+        message: `Lịch trực tuần bắt đầu ${weekStart} đã được reset. Vui lòng kiểm tra lại lịch cá nhân.`,
         notificationType: "SCHEDULE_RESET",
         entityType: "schedules",
         linkTarget: "personal_schedule",
@@ -67,13 +67,13 @@ export async function resetAssignmentSchedule(req, res) {
     await client.query("COMMIT");
 
     res.json({
-      message: "Reset phan cong thanh cong",
+      message: "Reset phân công thành công",
       updated_count: result.rowCount,
     });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({
-      message: "Loi khi reset phan cong",
+      message: "Lỗi khi reset phân công",
       error: error.message,
     });
   } finally {

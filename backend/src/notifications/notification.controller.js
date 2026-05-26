@@ -77,7 +77,7 @@ export async function listMyNotifications(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay danh sach thong bao",
+      message: "Lỗi khi lấy danh sách thông báo",
       error: error.message,
     });
   }
@@ -87,7 +87,7 @@ export async function markNotificationAsRead(req, res) {
   try {
     const notificationId = parseNotificationId(req.params.notificationId);
     if (!notificationId) {
-      return res.status(400).json({ message: "notificationId khong hop le" });
+      return res.status(400).json({ message: "Mã thông báo không hợp lệ" });
     }
 
     const result = await pool.query(
@@ -103,13 +103,13 @@ export async function markNotificationAsRead(req, res) {
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Khong tim thay thong bao" });
+      return res.status(404).json({ message: "Không tìm thấy thông báo" });
     }
 
-    res.json({ message: "Da danh dau thong bao da doc" });
+    res.json({ message: "Đã đánh dấu thông báo đã đọc" });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi cap nhat thong bao",
+      message: "Lỗi khi cập nhật thông báo",
       error: error.message,
     });
   }
@@ -129,12 +129,12 @@ export async function markAllNotificationsAsRead(req, res) {
     );
 
     res.json({
-      message: "Da danh dau tat ca thong bao da doc",
+      message: "Đã đánh dấu tất cả thông báo đã đọc",
       updated_count: result.rowCount,
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi cap nhat thong bao",
+      message: "Lỗi khi cập nhật thông báo",
       error: error.message,
     });
   }

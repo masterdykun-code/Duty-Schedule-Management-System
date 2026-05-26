@@ -14,7 +14,7 @@ export async function getMySchedule(req, res) {
 
     if (!weekStart) {
       return res.status(400).json({
-        message: "week_start phai co dinh dang YYYY-MM-DD",
+        message: "week_start phải có định dạng YYYY-MM-DD",
       });
     }
 
@@ -23,7 +23,7 @@ export async function getMySchedule(req, res) {
 
     if (!profile) {
       return res.status(404).json({
-        message: "Tai khoan nay chua lien ket voi nhan vien y te",
+        message: "Tài khoản này chưa liên kết với nhân viên y tế",
       });
     }
 
@@ -44,7 +44,7 @@ export async function getMySchedule(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay lich truc ca nhan",
+      message: "Lỗi khi lấy lịch trực cá nhân",
       error: error.message,
     });
   }

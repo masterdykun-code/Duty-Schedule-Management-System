@@ -13,7 +13,7 @@ export async function getGeneralSchedule(req, res) {
 
     if (!weekStart) {
       return res.status(400).json({
-        message: "week_start phai co dinh dang YYYY-MM-DD",
+        message: "week_start phải có định dạng YYYY-MM-DD",
       });
     }
 
@@ -33,7 +33,7 @@ export async function getGeneralSchedule(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay lich truc tong quat",
+      message: "Lỗi khi lấy lịch trực tổng quát",
       error: error.message,
     });
   }

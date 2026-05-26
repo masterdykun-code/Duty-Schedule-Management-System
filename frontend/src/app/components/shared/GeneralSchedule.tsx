@@ -361,7 +361,7 @@ export function GeneralSchedule(_props: GeneralScheduleProps) {
     });
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Lich truc");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Lịch trực");
     XLSX.writeFile(
       workbook,
       `lich-truc-tong-quat-${weekStart}-${weekEnd}.xlsx`,

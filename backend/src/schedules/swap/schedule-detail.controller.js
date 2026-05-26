@@ -14,14 +14,14 @@ export async function getScheduleDetail(req, res) {
   try {
     const scheduleId = parsePositiveId(req.params.scheduleId);
     if (!scheduleId) {
-      return res.status(400).json({ message: "scheduleId khong hop le" });
+      return res.status(400).json({ message: "Mã ca trực không hợp lệ" });
     }
 
     await expireOverdueSwapRequests(pool);
 
     const schedule = await getOwnedSchedule(pool, req.user.sub, scheduleId);
     if (!schedule) {
-      return res.status(404).json({ message: "Khong tim thay ca truc" });
+      return res.status(404).json({ message: "Không tìm thấy ca trực" });
     }
 
     const [coworkers, rooms, shifts] = await Promise.all([
@@ -38,7 +38,7 @@ export async function getScheduleDetail(req, res) {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Loi khi lay chi tiet ca truc",
+      message: "Lỗi khi lấy chi tiết ca trực",
       error: error.message,
     });
   }

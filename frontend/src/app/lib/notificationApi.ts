@@ -41,12 +41,12 @@ export interface NotificationRecord {
 function getToken() {
   const rawSession = localStorage.getItem(AUTH_SESSION_KEY);
   if (!rawSession) {
-    throw new Error("Ban can dang nhap lai.");
+    throw new Error("Bạn cần đăng nhập lại.");
   }
 
   const session = JSON.parse(rawSession) as { token?: string };
   if (!session.token) {
-    throw new Error("Ban can dang nhap lai.");
+    throw new Error("Bạn cần đăng nhập lại.");
   }
 
   return session.token;
@@ -70,7 +70,7 @@ async function notificationRequest<T>(path: string, options: RequestInit = {}) {
   const body = await readResponseJson<T & { message?: string }>(response);
 
   if (!response.ok) {
-    throw new Error(body.message || "Khong the xu ly thong bao.");
+    throw new Error(body.message || "Không thể xử lý thông báo.");
   }
 
   return body;

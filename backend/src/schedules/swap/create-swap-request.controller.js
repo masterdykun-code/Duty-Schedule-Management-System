@@ -13,7 +13,7 @@ export async function sendSwapRequest(req, res) {
 
     if (!sourceScheduleId || !targetScheduleId) {
       return res.status(400).json({
-        message: "Vui long chon ca truc nguon va ca truc muon doi",
+        message: "Vui lòng chọn ca trực nguồn và ca trực muốn đổi",
       });
     }
 
@@ -36,7 +36,7 @@ export async function sendSwapRequest(req, res) {
       action: "CREATE_SWAP_REQUEST",
       entityType: "swap_requests",
       entityId: result.request.request_id,
-      description: `Gui yeu cau doi ca YC${String(result.request.request_id).padStart(3, "0")}`,
+      description: `Gửi yêu cầu đổi ca YC${String(result.request.request_id).padStart(3, "0")}`,
       metadata: {
         request_id: result.request.request_id,
         source_schedule_id: sourceScheduleId,
@@ -48,8 +48,8 @@ export async function sendSwapRequest(req, res) {
     await createNotificationsForEmployeeIds(client, {
       employeeIds: [result.context.target.employee_id],
       senderUserId: req.user.sub,
-      title: "Yeu cau doi ca moi",
-      message: `${result.context.source.full_name} gui yeu cau doi ca voi ban.`,
+      title: "Yêu cầu đổi ca mới",
+      message: `${result.context.source.full_name} gửi yêu cầu đổi ca với bạn.`,
       notificationType: "SWAP_REQUEST_CREATED",
       entityType: "swap_requests",
       entityId: result.request.request_id,
@@ -65,7 +65,7 @@ export async function sendSwapRequest(req, res) {
     await client.query("COMMIT");
 
     res.status(201).json({
-      message: "Gui yeu cau doi ca thanh cong",
+      message: "Gửi yêu cầu đổi ca thành công",
       request_id: result.request.request_id,
       status: result.request.status,
     });
@@ -73,7 +73,7 @@ export async function sendSwapRequest(req, res) {
     await client.query("ROLLBACK");
     const isConflict = error.code === "23505";
     res.status(isConflict ? 400 : 500).json({
-      message: isConflict ? "Ca truc nay dang co yeu cau doi ca cho xu ly" : "Loi khi gui yeu cau doi ca",
+      message: isConflict ? "Ca trực này đang có yêu cầu đổi ca chờ xử lý" : "Lỗi khi gửi yêu cầu đổi ca",
       error: error.message,
     });
   } finally {

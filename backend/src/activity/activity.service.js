@@ -64,6 +64,6 @@ export async function recordActivityLogSafely(client = pool, payload) {
   try {
     await recordActivityLog(client, payload);
   } catch (error) {
-    console.error("Khong the ghi nhat ky hoat dong:", error.message);
+    console.error("Không thể ghi nhật ký hoạt động:", error.message);
   }
 }

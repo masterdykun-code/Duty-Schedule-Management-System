@@ -18,15 +18,13 @@ import {
   markNotificationRead,
   type NotificationRecord,
 } from "../lib/notificationApi";
-import type { Page } from "./Sidebar";
+import type { Page, Role } from "../routes";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-
-type Role = "admin" | "staff" | "head" | "office";
 
 const roleLabel: Record<Role, string> = {
   admin: "Quản trị viên",
@@ -85,7 +83,7 @@ export function Header({ user, onUserUpdated, onNavigate, onLogout }: HeaderProp
       setUnreadCount(result.unreadCount);
     } catch (error) {
       setNotificationError(
-        error instanceof Error ? error.message : "Khong the tai thong bao.",
+        error instanceof Error ? error.message : "Không thể tải thông báo.",
       );
     } finally {
       if (!silent) setLoadingNotifications(false);
@@ -717,5 +715,3 @@ function getNotificationTypeClass(type: string) {
 
   return "bg-gray-100 text-gray-600";
 }
-
-export type { Role };
