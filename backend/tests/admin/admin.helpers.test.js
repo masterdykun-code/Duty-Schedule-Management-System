@@ -10,7 +10,8 @@ import {
   normalizeShiftType,
   normalizeStatus,
   parsePositiveId,
-} from "../../src/admin/admin.helpers.js";
+} from "../../src/modules/admin/controllers/admin.helpers.js";
+
 
 describe("admin.helpers", () => {
   test("normalize cac gia tri co ban", () => {

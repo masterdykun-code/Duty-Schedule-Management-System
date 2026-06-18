@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { createToken, getTokenTtlSeconds, verifyToken } from "../../src/auth/token.service.js";
+import { createToken, getTokenTtlSeconds, verifyToken } from "../../src/modules/auth/services/token.service.js";
+
 
 const user = {
   user_id: 12,

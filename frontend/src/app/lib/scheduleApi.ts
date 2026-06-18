@@ -524,7 +524,25 @@ function getToken() {
 
 async function readResponseJson<T>(response: Response): Promise<T> {
   const text = await response.text();
-  return text ? JSON.parse(text) : ({} as T);
+  if (!text) return {} as T;
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object") {
+      if (parsed.success === true && "data" in parsed) {
+        return parsed.data as T;
+      }
+      if (parsed.success === false && "error" in parsed) {
+        const errObj = parsed.error || {};
+        return {
+          message: errObj.message || "Đã xảy ra lỗi hệ thống",
+          ...errObj,
+        } as unknown as T;
+      }
+    }
+    return parsed as T;
+  } catch {
+    return {} as T;
+  }
 }
 
 function mapProfile(profile: ApiScheduleProfile): MyScheduleProfile {

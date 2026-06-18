@@ -3,8 +3,9 @@ import {
   authenticateToken,
   authorizeRoles,
   authorizeTableRead,
-} from "../../src/auth/auth.middleware.js";
-import { createToken } from "../../src/auth/token.service.js";
+} from "../../src/middlewares/auth.middleware.js";
+import { createToken } from "../../src/modules/auth/services/token.service.js";
+
 
 function createResponse() {
   const res = {
@@ -51,7 +52,10 @@ describe("auth.middleware", () => {
     authenticateToken(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: "Chưa đăng nhập" });
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: { message: "Chưa đăng nhập" },
+    });
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -74,7 +78,10 @@ describe("auth.middleware", () => {
     authorizeRoles("ADMIN")(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ message: "Không có quyền truy cập" });
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: { message: "Không có quyền truy cập" },
+    });
     expect(next).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import { hashPassword, verifyPassword } from "../../src/auth/password.service.js";
+import { hashPassword, verifyPassword } from "../../src/modules/auth/services/password.service.js";
+
 
 describe("password.service", () => {
   test("hashPassword tao hash PBKDF2 va verify dung mat khau", () => {

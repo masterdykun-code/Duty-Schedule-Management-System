@@ -1,12 +1,13 @@
 import express from "express";
 import cors from "cors";
 import { pool } from "./db.js";
-import adminRoutes from "./admin/admin.routes.js";
-import authRoutes from "./auth/auth.routes.js";
-import notificationRoutes from "./notifications/notification.routes.js";
-import scheduleRoutes from "./schedules/schedule.routes.js";
+import adminRoutes from "./modules/admin/routes/admin.routes.js";
+import authRoutes from "./modules/auth/routes/auth.routes.js";
+import notificationRoutes from "./modules/notification/routes/notification.routes.js";
+import scheduleRoutes from "./modules/schedule/routes/schedule.routes.js";
 import tableRoutes from "./routes/table.routes.js";
-import userRoutes from "./users/user.routes.js";
+import userRoutes from "./modules/user/routes/user.routes.js";
+import { sendSuccess, sendError } from "./utils/response.js";
 
 export function createApp() {
   const app = express();
@@ -15,7 +16,7 @@ export function createApp() {
   app.use(express.json());
 
   app.get("/", (req, res) => {
-    res.json({
+    sendSuccess(res, {
       message: "Backend Node.js + PostgreSQL đang chạy",
     });
   });
@@ -23,15 +24,12 @@ export function createApp() {
   app.get("/health", async (req, res) => {
     try {
       const result = await pool.query("SELECT NOW()");
-      res.json({
+      sendSuccess(res, {
         status: "OK",
         database_time: result.rows[0].now,
       });
     } catch (error) {
-      res.status(500).json({
-        status: "ERROR",
-        message: error.message,
-      });
+      sendError(res, error.message, 500, { status: "ERROR" });
     }
   });
 

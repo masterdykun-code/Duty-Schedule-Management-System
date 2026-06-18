@@ -5,7 +5,7 @@ import {
   formatIsoDate,
   getRequestedWeekStart,
   isValidIsoDate,
-} from "../../../src/schedules/common/schedule-date.js";
+} from "../../../src/utils/schedule-date.js";
 
 describe("schedule-date", () => {
   test("formatIsoDate va dateFromIso chuyen doi ngay ISO", () => {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
-import { authenticateToken, authorizeTableRead } from "../auth/auth.middleware.js";
+import { authenticateToken, authorizeTableRead } from "../middlewares/auth.middleware.js";
+import { sendSuccess, sendError } from "../utils/response.js";
 
 const router = Router();
 
@@ -19,23 +20,18 @@ router.get("/:table", authenticateToken, authorizeTableRead, async (req, res) =>
     const { table } = req.params;
 
     if (!allowedTables.includes(table)) {
-      return res.status(400).json({
-        message: "Tên bảng không hợp lệ",
-      });
+      return sendError(res, "Tên bảng không hợp lệ", 400);
     }
 
     const result = await pool.query(`SELECT * FROM ${table} ORDER BY 1 ASC`);
 
-    res.json({
+    sendSuccess(res, {
       table,
       total: result.rowCount,
       data: result.rows,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Lỗi khi lấy dữ liệu",
-      error: error.message,
-    });
+    sendError(res, "Lỗi khi lấy dữ liệu", 500, { error: error.message });
   }
 });
 

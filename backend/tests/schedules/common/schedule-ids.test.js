@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { parsePositiveId, uniquePositiveIds } from "../../../src/schedules/common/schedule-ids.js";
+import { parsePositiveId, uniquePositiveIds } from "../../../src/utils/schedule-ids.js";
 
 describe("schedule-ids", () => {
   test("parsePositiveId chi nhan so nguyen duong", () => {
