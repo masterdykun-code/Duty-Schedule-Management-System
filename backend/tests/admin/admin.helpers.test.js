@@ -1,8 +1,6 @@
 import { describe, expect, jest, test } from "@jest/globals";
 import {
   emptyToNull,
-  generateEmployeeCode,
-  generateShiftCode,
   isValidEmail,
   isValidPhone,
   normalizeGender,
@@ -11,7 +9,7 @@ import {
   normalizeStatus,
   parsePositiveId,
 } from "../../src/modules/admin/controllers/admin.helpers.js";
-
+import { AdminRepository } from "../../src/modules/admin/repositories/admin.repository.js";
 
 describe("admin.helpers", () => {
   test("normalize cac gia tri co ban", () => {
@@ -62,8 +60,9 @@ describe("admin.helpers", () => {
         .mockResolvedValueOnce({ rows: [{ next_number: 4 }] }),
     };
 
-    await expect(generateEmployeeCode(client)).resolves.toBe("NV012");
-    await expect(generateShiftCode(client)).resolves.toBe("CA004");
+    await expect(AdminRepository.generateEmployeeCode(client)).resolves.toBe("NV012");
+    await expect(AdminRepository.generateShiftCode(client)).resolves.toBe("CA004");
     expect(client.query).toHaveBeenCalledTimes(2);
   });
 });
+

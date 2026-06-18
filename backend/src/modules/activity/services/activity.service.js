@@ -1,4 +1,5 @@
 import { pool } from "../../../db.js";
+import { ActivityRepository } from "../repositories/activity.repository.js";
 
 function actorFromRequest(req) {
   return {
@@ -30,33 +31,17 @@ export async function recordActivityLog(
   },
 ) {
   const resolvedActor = actor || actorFromRequest(req);
+  const ipAddress = getRequestIp(req);
 
-  await client.query(
-    `
-    INSERT INTO activity_logs (
-      user_id,
-      username,
-      role,
-      action,
-      entity_type,
-      entity_id,
-      description,
-      metadata,
-      ip_address
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
-    `,
-    [
-      resolvedActor.userId,
-      resolvedActor.username,
-      resolvedActor.role,
-      action,
-      entityType,
-      entityId,
-      description,
-      JSON.stringify(metadata || {}),
-      getRequestIp(req),
-    ],
+  await ActivityRepository.insertActivityLog(
+    client,
+    resolvedActor,
+    action,
+    entityType,
+    entityId,
+    description,
+    metadata,
+    ipAddress,
   );
 }
 

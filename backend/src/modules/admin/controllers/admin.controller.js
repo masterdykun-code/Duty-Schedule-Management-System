@@ -5,8 +5,6 @@ import { hashPassword } from "../../auth/services/password.service.js";
 import { roles } from "../../../config/roles.js";
 import { AdminRepository } from "../repositories/admin.repository.js";
 import {
-  generateEmployeeCode,
-  generateShiftCode,
   parsePositiveId,
 } from "./admin.helpers.js";
 import {
@@ -15,54 +13,6 @@ import {
 } from "../dtos/admin.dto.js";
 import { sendSuccess, sendError } from "../../../utils/response.js";
 
-async function syncShiftDepartments(client, shiftId, departmentConfigs, status) {
-  await client.query("DELETE FROM department_required_shifts WHERE shift_id = $1", [shiftId]);
-
-  if (departmentConfigs.length === 0) {
-    return;
-  }
-
-  const result = await client.query(
-    `
-    INSERT INTO department_required_shifts (
-      department_id, shift_id, is_required, min_staff, max_staff, status
-    )
-    SELECT
-      config.department_id,
-      $1,
-      config.is_required,
-      config.min_staff,
-      config.max_staff,
-      $2
-    FROM json_to_recordset($3::json) AS config(
-      department_id BIGINT,
-      is_required BOOLEAN,
-      min_staff INTEGER,
-      max_staff INTEGER
-    )
-    JOIN departments d ON d.department_id = config.department_id
-    WHERE d.status = 'ACTIVE'
-    `,
-    [
-      shiftId,
-      status,
-      JSON.stringify(
-        departmentConfigs.map((config) => ({
-          department_id: config.departmentId,
-          is_required: config.isRequired,
-          min_staff: config.minStaff,
-          max_staff: config.maxStaff,
-        })),
-      ),
-    ],
-  );
-
-  if (result.rowCount !== departmentConfigs.length) {
-    const error = new Error("Khoa áp dụng không hợp lệ hoặc đã ngừng hoạt động");
-    error.statusCode = 400;
-    throw error;
-  }
-}
 
 export async function listDepartments(req, res) {
   try {
@@ -113,7 +63,7 @@ export async function createEmployee(req, res) {
 
     await client.query("BEGIN");
 
-    const employeeCode = await generateEmployeeCode(client);
+    const employeeCode = await AdminRepository.generateEmployeeCode(client);
     if (roomId) {
       const roomValid = await AdminRepository.checkRoomBelongsToDepartment(client, roomId, departmentId);
       if (!roomValid) {
@@ -335,7 +285,7 @@ export async function createShift(req, res) {
 
     await client.query("BEGIN");
 
-    const shiftCode = await generateShiftCode(client);
+    const shiftCode = await AdminRepository.generateShiftCode(client);
     const shiftId = await AdminRepository.insertShift(client, {
       shiftCode,
       shiftName: shiftName.trim(),
@@ -346,7 +296,7 @@ export async function createShift(req, res) {
       status,
     });
 
-    await syncShiftDepartments(client, shiftId, departmentConfigs, status);
+    await AdminRepository.syncShiftDepartments(client, shiftId, departmentConfigs, status);
 
     const shift = await AdminRepository.getShiftById(client, shiftId);
 
@@ -413,7 +363,7 @@ export async function updateShift(req, res) {
       return sendError(res, "Không tìm thấy ca trực", 404);
     }
 
-    await syncShiftDepartments(client, shiftId, departmentConfigs, status);
+    await AdminRepository.syncShiftDepartments(client, shiftId, departmentConfigs, status);
 
     const shift = await AdminRepository.getShiftById(client, shiftId);
 

@@ -1,9 +1,8 @@
 import { pool } from "../../../db.js";
 import { hashPassword } from "../../auth/services/password.service.js";
-
+import { UserRepository } from "../repositories/user.repository.js";
 import { roles } from "../../../config/roles.js";
 import { sendSuccess, sendError } from "../../../utils/response.js";
-
 
 export async function createUser(req, res) {
   try {
@@ -19,18 +18,16 @@ export async function createUser(req, res) {
 
     const passwordHash = password ? hashPassword(password) : password_hash;
 
-    const result = await pool.query(
-      `
-      INSERT INTO users (username, password_hash, role, status)
-      VALUES ($1, $2, $3, COALESCE($4, 'ACTIVE'))
-      RETURNING user_id, username, role, status, created_at
-      `,
-      [username, passwordHash, role, status],
-    );
+    const data = await UserRepository.createUser(pool, {
+      username,
+      passwordHash,
+      role,
+      status,
+    });
 
     sendSuccess(res, {
       message: "Tao user thanh cong",
-      data: result.rows[0],
+      data,
     }, 201);
   } catch (error) {
     sendError(res, "Lỗi khi tạo user", 500, { error: error.message });

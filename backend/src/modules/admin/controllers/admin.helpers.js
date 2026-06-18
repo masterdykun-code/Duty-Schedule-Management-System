@@ -93,22 +93,4 @@ export function isValidPhone(value) {
   return /^\d{10}$/.test(value);
 }
 
-export async function generateEmployeeCode(client) {
-  const result = await client.query(`
-    SELECT COALESCE(MAX(SUBSTRING(employee_code FROM 3)::INTEGER), 0) + 1 AS next_number
-    FROM employees
-    WHERE employee_code ~ '^NV[0-9]+$'
-  `);
 
-  return `NV${String(result.rows[0].next_number).padStart(3, "0")}`;
-}
-
-export async function generateShiftCode(client) {
-  const result = await client.query(`
-    SELECT COALESCE(MAX(SUBSTRING(shift_code FROM 3)::INTEGER), 0) + 1 AS next_number
-    FROM shifts
-    WHERE shift_code ~ '^CA[0-9]+$'
-  `);
-
-  return `CA${String(result.rows[0].next_number).padStart(3, "0")}`;
-}
